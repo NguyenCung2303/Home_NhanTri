@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "421468289426",
+    "firebase_url": "https://nhantri-52a8d-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "nhantri-52a8d",
+    "storage_bucket": "nhantri-52a8d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:421468289426:android:2bbe0c53dfe02d2dca294b",
+        "android_client_info": {
+          "package_name": "com.example.app_nhan_tri"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvNK6NMb7rGu0qilc72-J0bE2RLQ3gGIY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
