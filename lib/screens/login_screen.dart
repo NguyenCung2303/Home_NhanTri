@@ -1,12 +1,85 @@
 import 'package:flutter/material.dart';
-import 'user_screens/main_shell.dart';
-import 'teacher_screens/teacher_main_shell.dart';
+import 'package:provider/provider.dart';
 
-class LoginScreen extends StatelessWidget {
+import '../../features/auth/providers/auth_provider.dart';
+import '../../../screens/user_screens/main_shell.dart';
+import '../../../screens/teacher_screens/teacher_main_shell.dart';
+
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    usernameController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    final authProvider = context.read<AuthProvider>();
+
+    final username = usernameController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập đầy đủ số điện thoại/email và mật khẩu'),
+        ),
+      );
+      return;
+    }
+
+    final success = await authProvider.login(username, password);
+
+    if (!mounted) return;
+
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.errorMessage ?? 'Đăng nhập thất bại'),
+        ),
+      );
+      return;
+    }
+
+    final role = authProvider.currentUser?.role;
+
+    if (role == 'PARENT') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const MainShell(),
+        ),
+      );
+    } else if (role == 'ADMIN') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const TeacherMainShell(),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tài khoản không có quyền truy cập'),
+        ),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+
     return Scaffold(
       backgroundColor: const Color(0xFF3F3F3F),
       body: SafeArea(
@@ -19,7 +92,6 @@ class LoginScreen extends StatelessWidget {
                 children: [
                   const SizedBox(height: 60),
 
-                  // Title
                   const Text(
                     'Home Nhân Trí',
                     style: TextStyle(
@@ -31,11 +103,33 @@ class LoginScreen extends StatelessWidget {
 
                   const SizedBox(height: 48),
 
-                  // Phone input
                   TextField(
-                    keyboardType: TextInputType.phone,
+                    controller: usernameController,
+                    keyboardType: TextInputType.text,
+                    style: const TextStyle(color: Colors.black),
                     decoration: InputDecoration(
-                      hintText: 'Nhập số điện thoại',
+                      hintText: 'Nhập số điện thoại hoặc email',
+                      filled: true,
+                      fillColor: const Color(0xFFE6E6E6),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 16,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  TextField(
+                    controller: passwordController,
+                    obscureText: true,
+                    style: const TextStyle(color: Colors.black),
+                    decoration: InputDecoration(
+                      hintText: 'Nhập mật khẩu',
                       filled: true,
                       fillColor: const Color(0xFFE6E6E6),
                       contentPadding: const EdgeInsets.symmetric(
@@ -51,73 +145,53 @@ class LoginScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // Login buttons
-                  Column(
-                    children: [
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // TẠM: USER
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const MainShell(),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE85B7A),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                          ),
-                          child: const Text(
-                            'Đăng nhập Phụ huynh',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: authProvider.isLoading ? null : _handleLogin,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE85B7A),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
                         ),
                       ),
-
-                      const SizedBox(height: 12),
-
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            // TẠM: TEACHER
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const TeacherMainShell(),
+                      child: authProvider.isLoading
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
                               ),
-                            );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.white54),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24),
+                            )
+                          : const Text(
+                              'Đăng nhập',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
-                          child: const Text(
-                            'Đăng nhập Giáo viên',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
 
+                  const SizedBox(height: 16),
+
+                  const Text(
+                    'Tài khoản mẫu:',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Admin: 0900000001 / 123456',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Phụ huynh: 0900000002 / 123456',
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
 
                   const SizedBox(height: 40),
                 ],
