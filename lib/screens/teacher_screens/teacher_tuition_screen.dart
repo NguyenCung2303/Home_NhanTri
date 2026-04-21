@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../../theme/app_colors.dart';
+import '../../features/tuition/providers/tuition_provider.dart';
+import '../../features/student/providers/student_provider.dart';
+import '../../features/class_room/providers/class_room_provider.dart';
+import '../../data/models/tuition_model.dart';
+import '../../data/models/student_model.dart';
+import '../../data/models/class_room_model.dart';
 
 class TeacherTuitionScreen extends StatefulWidget {
   const TeacherTuitionScreen({super.key});
@@ -11,32 +19,50 @@ class TeacherTuitionScreen extends StatefulWidget {
 class _TeacherTuitionScreenState extends State<TeacherTuitionScreen> {
   String _filter = 'Tất cả';
 
-  final List<Map<String, dynamic>> _students = [
-    {
-      'name': 'Nguyễn Văn A',
-      'class': 'Lớp Mầm 1',
-      'amount': '2.500.000 ₫',
-      'status': 'Đã đóng',
-    },
-    {
-      'name': 'Trần Thị B',
-      'class': 'Lớp Chồi 2',
-      'amount': '2.500.000 ₫',
-      'status': 'Chưa đóng',
-    },
-    {
-      'name': 'Lê Hoàng C',
-      'class': 'Lớp Lá 1',
-      'amount': '2.700.000 ₫',
-      'status': 'Chưa đóng',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() async {
+      await context.read<TuitionProvider>().loadTuitions();
+      await context.read<StudentProvider>().loadStudents();
+      await context.read<ClassRoomProvider>().loadClassRooms();
+    });
+  }
+
+  String _studentName(String id, List<StudentModel> students) {
+    try {
+      return students.firstWhere((e) => e.id == id).fullName;
+    } catch (_) {
+      return 'Không rõ';
+    }
+  }
+
+  String _className(String id, List<ClassRoomModel> classes) {
+    try {
+      return classes.firstWhere((e) => e.id == id).className;
+    } catch (_) {
+      return 'Không rõ lớp';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final tuitionProvider = context.watch<TuitionProvider>();
+    final studentProvider = context.watch<StudentProvider>();
+    final classProvider = context.watch<ClassRoomProvider>();
+
+    final tuitions = tuitionProvider.tuitions;
+    final students = studentProvider.students;
+    final classes = classProvider.classRooms;
+
     final filtered = _filter == 'Tất cả'
-        ? _students
-        : _students.where((s) => s['status'] == _filter).toList();
+        ? tuitions
+        : tuitions
+            .where((t) =>
+                (_filter == 'Đã đóng' && t.status == 'PAID') ||
+                (_filter == 'Chưa đóng' && t.status != 'PAID'))
+            .toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -45,12 +71,6 @@ class _TeacherTuitionScreenState extends State<TeacherTuitionScreen> {
         elevation: 0,
         title: const Text('Quản lý học phí'),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showAddDialog(context),
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -59,27 +79,38 @@ class _TeacherTuitionScreenState extends State<TeacherTuitionScreen> {
             onChanged: (v) => setState(() => _filter = v),
           ),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: filtered.length,
-              itemBuilder: (_, i) {
-                final s = filtered[i];
-                return _StudentTuitionItem(
-                  name: s['name'],
-                  className: s['class'],
-                  amount: s['amount'],
-                  status: s['status'],
-                  onTap: () => _showDetail(context, s),
-                );
-              },
-            ),
+            child: tuitionProvider.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filtered.length,
+                    itemBuilder: (_, i) {
+                      final t = filtered[i];
+
+                      final name = _studentName(t.studentId, students);
+                      final className = _className(t.classId, classes);
+
+                      final paid = t.status == 'PAID';
+
+                      return _StudentTuitionItem(
+                        name: name,
+                        className: className,
+                        amount: '${t.amount.toStringAsFixed(0)} đ',
+                        status: paid ? 'Đã đóng' : 'Chưa đóng',
+                        onTap: () => _showDetail(context, t, name, className),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
     );
   }
 
-  void _showDetail(BuildContext context, Map<String, dynamic> s) {
+  void _showDetail(
+      BuildContext context, TuitionModel t, String name, String className) {
+    final paid = t.status == 'PAID';
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.card,
@@ -87,8 +118,6 @@ class _TeacherTuitionScreenState extends State<TeacherTuitionScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (_) {
-        final paid = s['status'] == 'Đã đóng';
-
         return Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -96,7 +125,7 @@ class _TeacherTuitionScreenState extends State<TeacherTuitionScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                s['name'],
+                name,
                 style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 18,
@@ -105,12 +134,12 @@ class _TeacherTuitionScreenState extends State<TeacherTuitionScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                s['class'],
+                className,
                 style: const TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
               Text(
-                'Học phí: ${s['amount']}',
+                'Học phí: ${t.amount.toStringAsFixed(0)} đ',
                 style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w600,
@@ -118,52 +147,37 @@ class _TeacherTuitionScreenState extends State<TeacherTuitionScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Trạng thái: ${s['status']}',
+                'Hạn đóng: ${t.dueDate}',
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Trạng thái: ${paid ? "Đã đóng" : "Chưa đóng"}',
                 style: TextStyle(
                   color: paid ? Colors.greenAccent : Colors.orangeAccent,
                 ),
               ),
               const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+              if (!paid)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await context.read<TuitionProvider>().markAsPaid(t.id);
+                      if (!mounted) return;
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
+                    child: const Text('Xác nhận đã đóng'),
                   ),
-                  child: const Text('Cập nhật học phí'),
                 ),
-              ),
             ],
           ),
-        );
-      },
-    );
-  }
-
-  void _showAddDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text('Thêm học phí'),
-          content: const TextField(
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(hintText: 'Số tiền'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Huỷ'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Lưu'),
-            ),
-          ],
         );
       },
     );
@@ -207,8 +221,7 @@ class _FilterBar extends StatelessWidget {
               child: Text(
                 f,
                 style: TextStyle(
-                  color:
-                      active ? Colors.white : AppColors.textSecondary,
+                  color: active ? Colors.white : AppColors.textSecondary,
                 ),
               ),
             ),
@@ -289,10 +302,8 @@ class _StudentTuitionItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: paid
                         ? Colors.green.withOpacity(0.15)

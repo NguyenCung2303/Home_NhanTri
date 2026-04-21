@@ -61,7 +61,7 @@ class MyApp extends StatelessWidget {
       child: const MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Home Nhân Trí',
-        home: TuitionListScreen(),
+        home: LoginScreen(),
       ),
     );
   }

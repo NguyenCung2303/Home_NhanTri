@@ -3,6 +3,7 @@ import 'teacher_home_screen.dart';
 import 'teacher_class_screen.dart';
 import 'teacher_message_screen.dart';
 import 'teacher_profile_screen.dart';
+import 'teacher_schedule_screen.dart';
 import '../todo/todo_home_screen.dart';
 import '../../theme/app_colors.dart';
 
@@ -19,6 +20,7 @@ class _TeacherMainShellState extends State<TeacherMainShell> {
   final List<Widget> _screens = const [
     TeacherHomeScreen(),
     TeacherClassScreen(),
+    TeacherScheduleScreen(),
     TeacherMessageScreen(),
     TodoHomeScreen(),
     TeacherProfileScreen(),
@@ -55,7 +57,7 @@ class _TeacherBottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
         color: const Color(0xFF3A2A31),
         borderRadius: BorderRadius.circular(28),
@@ -83,28 +85,35 @@ class _TeacherBottomBar extends StatelessWidget {
             onTap: () => onChanged(1),
           ),
           _NavItem(
-            icon: Icons.chat,
-            label: 'Tin nhắn',
+            icon: Icons.schedule,
+            label: 'Lịch học',
             active: currentIndex == 2,
             onTap: () => onChanged(2),
           ),
           _NavItem(
-            icon: Icons.checklist,
-            label: 'To-Do',
+            icon: Icons.chat,
+            label: 'Tin nhắn',
             active: currentIndex == 3,
             onTap: () => onChanged(3),
           ),
           _NavItem(
-            icon: Icons.person,
-            label: 'Cá nhân',
+            icon: Icons.checklist,
+            label: 'To-Do',
             active: currentIndex == 4,
             onTap: () => onChanged(4),
+          ),
+          _NavItem(
+            icon: Icons.person,
+            label: 'Cá nhân',
+            active: currentIndex == 5,
+            onTap: () => onChanged(5),
           ),
         ],
       ),
     );
   }
 }
+
 class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -125,20 +134,26 @@ class _NavItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+      child: SizedBox(
+        width: 52,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: color,
+                fontSize: 10,
+                fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
