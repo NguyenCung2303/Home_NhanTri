@@ -10,6 +10,7 @@ class TuitionModel {
   final String? transactionCode;
   final String? qrContent;
   final String? note;
+  final String? tuitionPeriod;
   final String createdAt;
 
   TuitionModel({
@@ -24,6 +25,7 @@ class TuitionModel {
     this.transactionCode,
     this.qrContent,
     this.note,
+    this.tuitionPeriod,
     required this.createdAt,
   });
 
@@ -40,6 +42,7 @@ class TuitionModel {
       'transaction_code': transactionCode,
       'qr_content': qrContent,
       'note': note,
+      'tuition_period': tuitionPeriod,
       'created_at': createdAt,
     };
   }
@@ -57,6 +60,7 @@ class TuitionModel {
       transactionCode: map['transaction_code'],
       qrContent: map['qr_content'],
       note: map['note'],
+      tuitionPeriod: map['tuition_period'],
       createdAt: map['created_at'],
     );
   }

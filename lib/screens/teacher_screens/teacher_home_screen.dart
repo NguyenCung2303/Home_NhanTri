@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../features/auth/providers/auth_provider.dart';
 import 'teacher_tuition_screen.dart';
 import 'teacher_student_screen.dart';
 import 'teacher_staff_screen.dart';
 import 'teacher_class_screen.dart';
 import '../notification_screen.dart';
 import '../../theme/app_colors.dart';
+import '../../features/parent/screens/parent_list_screen.dart';
 
 class TeacherHomeScreen extends StatelessWidget {
   const TeacherHomeScreen({super.key});
@@ -16,7 +20,11 @@ class TeacherHomeScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        title: const Text('Giáo viên'),
+        title: Text(
+          context.watch<AuthProvider>().currentUser?.role == 'ADMIN'
+              ? 'Quản trị viên'
+              : 'Giáo viên',
+        ),
         centerTitle: true,
       ),
       body: Padding(
@@ -74,6 +82,19 @@ class TeacherHomeScreen extends StatelessWidget {
                 );
               },
             ),
+            if (context.watch<AuthProvider>().currentUser?.role == 'ADMIN')
+              _TeacherCard(
+                title: 'Phụ huynh',
+                icon: Icons.family_restroom,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ParentListScreen(),
+                    ),
+                  );
+                },
+              ),
             _TeacherCard(
               title: 'Nhân viên',
               icon: Icons.badge,
@@ -113,6 +134,8 @@ class _TeacherCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.card,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
+          boxShadow: AppColors.softShadow,
         ),
         padding: const EdgeInsets.all(16),
         child: Column(

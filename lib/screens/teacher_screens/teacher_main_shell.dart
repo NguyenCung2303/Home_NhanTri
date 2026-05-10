@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'teacher_home_screen.dart';
-import 'teacher_class_screen.dart';
-import 'teacher_message_screen.dart';
-import 'teacher_profile_screen.dart';
-import 'teacher_schedule_screen.dart';
-import '../todo/todo_home_screen.dart';
+
 import '../../theme/app_colors.dart';
+import 'teacher_class_screen.dart';
+import 'teacher_attendance_tag_screen.dart';
+import 'teacher_learning_guidance_screen.dart';
+import 'teacher_profile_screen.dart';
 
 class TeacherMainShell extends StatefulWidget {
   const TeacherMainShell({super.key});
@@ -18,11 +17,9 @@ class _TeacherMainShellState extends State<TeacherMainShell> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = const [
-    TeacherHomeScreen(),
     TeacherClassScreen(),
-    TeacherScheduleScreen(),
-    TeacherMessageScreen(),
-    TodoHomeScreen(),
+    TeacherAttendanceTagScreen(),
+    TeacherLearningGuidanceScreen(),
     TeacherProfileScreen(),
   ];
 
@@ -36,9 +33,7 @@ class _TeacherMainShellState extends State<TeacherMainShell> {
       ),
       bottomNavigationBar: _TeacherBottomBar(
         currentIndex: _currentIndex,
-        onChanged: (i) {
-          setState(() => _currentIndex = i);
-        },
+        onChanged: (i) => setState(() => _currentIndex = i),
       ),
     );
   }
@@ -59,55 +54,23 @@ class _TeacherBottomBar extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF3A2A31),
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.35),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _NavItem(
-            icon: Icons.dashboard,
-            label: 'Tổng quan',
-            active: currentIndex == 0,
-            onTap: () => onChanged(0),
-          ),
-          _NavItem(
-            icon: Icons.class_,
-            label: 'Lớp học',
-            active: currentIndex == 1,
-            onTap: () => onChanged(1),
-          ),
-          _NavItem(
-            icon: Icons.schedule,
-            label: 'Lịch học',
-            active: currentIndex == 2,
-            onTap: () => onChanged(2),
-          ),
-          _NavItem(
-            icon: Icons.chat,
-            label: 'Tin nhắn',
-            active: currentIndex == 3,
-            onTap: () => onChanged(3),
-          ),
-          _NavItem(
-            icon: Icons.checklist,
-            label: 'To-Do',
-            active: currentIndex == 4,
-            onTap: () => onChanged(4),
-          ),
-          _NavItem(
-            icon: Icons.person,
-            label: 'Cá nhân',
-            active: currentIndex == 5,
-            onTap: () => onChanged(5),
-          ),
+          _NavItem(icon: Icons.class_, label: 'Lớp phụ trách', active: currentIndex == 0, onTap: () => onChanged(0)),
+          _NavItem(icon: Icons.fact_check, label: 'Điểm danh', active: currentIndex == 1, onTap: () => onChanged(1)),
+          _NavItem(icon: Icons.school, label: 'Định hướng', active: currentIndex == 2, onTap: () => onChanged(2)),
+          _NavItem(icon: Icons.person, label: 'Cá nhân', active: currentIndex == 3, onTap: () => onChanged(3)),
         ],
       ),
     );
@@ -129,13 +92,13 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? const Color(0xFFE85B7A) : Colors.white54;
+    final color = active ? AppColors.accent : AppColors.textSecondary;
 
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 52,
+        width: 72,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

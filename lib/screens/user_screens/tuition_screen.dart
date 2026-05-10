@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../theme/app_colors.dart';
+import '../../features/auth/providers/auth_provider.dart';
 import '../../features/tuition/providers/tuition_provider.dart';
 import '../../features/student/providers/student_provider.dart';
 import '../../features/class_room/providers/class_room_provider.dart';
@@ -23,8 +24,10 @@ class _TuitionScreenState extends State<TuitionScreen> {
     super.initState();
 
     Future.microtask(() async {
-      await context.read<TuitionProvider>().loadTuitions();
-      await context.read<StudentProvider>().loadStudents();
+      final userId = context.read<AuthProvider>().currentUser?.id;
+      if (userId == null) return;
+      await context.read<TuitionProvider>().loadTuitions(parentUserId: userId);
+      await context.read<StudentProvider>().loadStudentsByParentUserId(userId);
       await context.read<ClassRoomProvider>().loadClassRooms();
     });
   }
@@ -72,7 +75,7 @@ class _TuitionScreenState extends State<TuitionScreen> {
           : tuitions.isEmpty
               ? const Center(
                   child: Text(
-                    'Chưa có học phí',
+                    'Chưa có học phí của phụ huynh này',
                     style: TextStyle(color: AppColors.textSecondary),
                   ),
                 )
@@ -102,10 +105,13 @@ class _TuitionScreenState extends State<TuitionScreen> {
 
                           if (!mounted) return;
 
+                          final userId = context.read<AuthProvider>().currentUser?.id;
+                          if (userId != null) {
+                            await context.read<TuitionProvider>().loadTuitions(parentUserId: userId);
+                          }
+
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Đã xác nhận thanh toán'),
-                            ),
+                            const SnackBar(content: Text('Đã xác nhận thanh toán')),
                           );
                         },
                       ),
@@ -124,8 +130,10 @@ class _BankCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E5AA8),
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+        boxShadow: AppColors.softShadow,
       ),
       child: Row(
         children: [
@@ -135,26 +143,17 @@ class _BankCard extends StatelessWidget {
               children: [
                 Text(
                   'Ngân hàng VietinBank',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
                 ),
                 SizedBox(height: 8),
                 Text(
                   '1040 0017 6544 1',
-                  style: TextStyle(
-                    color: Colors.white,
-                    letterSpacing: 1,
-                  ),
+                  style: TextStyle(color: AppColors.accent, letterSpacing: 1, fontWeight: FontWeight.w800, fontSize: 18),
                 ),
                 SizedBox(height: 4),
                 Text(
                   'Chủ TK: HOME NHÂN TRÍ',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                 ),
               ],
             ),
@@ -163,14 +162,10 @@ class _BankCard extends StatelessWidget {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
+              color: AppColors.accentSoft,
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(
-              Icons.account_balance,
-              size: 36,
-              color: Colors.black87,
-            ),
+            child: const Icon(Icons.account_balance, size: 36, color: Colors.black87),
           ),
         ],
       ),
@@ -191,100 +186,130 @@ class _TuitionCard extends StatelessWidget {
     required this.onConfirm,
   });
 
+  String _safeMemo() {
+    final raw = (tuition.transactionCode != null && tuition.transactionCode!.trim().isNotEmpty)
+        ? tuition.transactionCode!.trim()
+        : 'HP_${tuition.id}';
+
+    // Nội dung chuyển khoản nên ngắn và không dấu để app ngân hàng đọc ổn định hơn.
+    return raw
+        .replaceAll(RegExp(r'[^A-Za-z0-9_\-]'), '_')
+        .replaceAll(RegExp(r'_+'), '_')
+        .toUpperCase();
+  }
+
   String _buildQrContent() {
     final amount = tuition.amount.toStringAsFixed(0);
-    final memo = tuition.transactionCode ?? 'HP_${tuition.id}';
-    final transactionCode = 'HP_${DateTime.now().millisecondsSinceEpoch}';
+    final memo = _safeMemo();
 
-    return '''
-      BANK: VietinBank
-      ACCOUNT: 1040001765441
-      ACCOUNT_NAME: HOME NHAN TRI
-      AMOUNT: $amount
-      MEMO: $memo
-      STUDENT: $studentName
-      CLASS: $className
-      MEMO: $transactionCode
-      ''';
-        }
+    // Fallback QR nội bộ, dùng khi ảnh VietQR không tải được.
+    // Giữ text ASCII để qr_flutter không lỗi với một số máy/emulator cũ.
+    return 'BANK=VIETINBANK;ACCOUNT=1040001765441;NAME=HOME_NHAN_TRI;AMOUNT=$amount;MEMO=$memo';
+  }
+
+  String _buildVietQrImageUrl() {
+    final amount = tuition.amount.toStringAsFixed(0);
+    final memo = Uri.encodeComponent(_safeMemo());
+    final accountName = Uri.encodeComponent('HOME NHAN TRI');
+
+    // VietinBank BIN: 970415. Tài khoản: 1040001765441.
+    return 'https://img.vietqr.io/image/970415-1040001765441-compact2.png'
+        '?amount=$amount&addInfo=$memo&accountName=$accountName';
+  }
+
+  Widget _offlineQrBox(String qrData) {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.all(12),
+      child: QrImageView(
+        data: qrData,
+        version: QrVersions.auto,
+        size: 220,
+        gapless: true,
+        errorStateBuilder: (context, error) {
+          return const SizedBox(
+            width: 220,
+            height: 220,
+            child: Center(
+              child: Text(
+                'Không tạo được QR\nVui lòng chuyển khoản thủ công',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   void _showQrDialog(BuildContext context) {
     final qrData = (tuition.qrContent != null && tuition.qrContent!.trim().isNotEmpty)
-        ? tuition.qrContent!
+        ? tuition.qrContent!.trim()
         : _buildQrContent();
+    final vietQrUrl = _buildVietQrImageUrl();
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF4A4A4A),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: const Text(
-          'Mã QR thanh toán',
-          style: TextStyle(color: Colors.white),
-        ),
+        backgroundColor: AppColors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Mã QR thanh toán', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w800)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                color: Colors.white,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.border),
+                ),
                 padding: const EdgeInsets.all(12),
-                child: QrImageView(
-                  data: qrData,
-                  version: QrVersions.auto,
-                  size: 220,
+                child: Image.network(
+                  vietQrUrl,
+                  width: 240,
+                  height: 240,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const SizedBox(
+                      width: 240,
+                      height: 240,
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) => _offlineQrBox(qrData),
                 ),
               ),
               const SizedBox(height: 16),
               Text(
                 studentName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 6),
               Text(
                 className,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                ),
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
               Text(
                 'Số tiền: ${tuition.amount.toStringAsFixed(0)} ₫',
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.w800),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Nội dung CK: ${tuition.transactionCode ?? 'HP_${tuition.id}'}',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                ),
+              const SizedBox(height: 6),
+              SelectableText(
+                'Nội dung CK: ${_safeMemo()}',
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                 textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Hạn đóng: ${tuition.dueDate}',
-                style: const TextStyle(
-                  color: Colors.white60,
-                  fontSize: 12,
-                ),
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Đóng'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Đóng')),
         ],
       ),
     );
@@ -292,128 +317,87 @@ class _TuitionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final paid = tuition.status == 'PAID';
+    final isPaid = tuition.status == 'PAID';
+    final accent = isPaid ? AppColors.success : AppColors.warning;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF4A4A4A),
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+        boxShadow: AppColors.softShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            studentName,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            className,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      studentName,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(className, style: const TextStyle(color: AppColors.textSecondary)),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  isPaid ? 'Đã thanh toán' : 'Chưa thanh toán',
+                  style: TextStyle(color: accent, fontWeight: FontWeight.w600, fontSize: 12),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Text(
-            '${tuition.amount.toStringAsFixed(0)} ₫',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
             'Hạn đóng: ${tuition.dueDate}',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-            ),
+            style: const TextStyle(color: AppColors.textSecondary),
           ),
-          if (tuition.note != null && tuition.note!.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              tuition.note!,
-              style: const TextStyle(
-                color: Colors.white60,
-                fontSize: 12,
-              ),
-            ),
+          const SizedBox(height: 4),
+          Text(
+            'Số tiền: ${tuition.amount.toStringAsFixed(0)} ₫',
+            style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+          ),
+          if (tuition.note?.trim().isNotEmpty == true) ...[
+            const SizedBox(height: 4),
+            Text(tuition.note!, style: const TextStyle(color: AppColors.textSecondary)),
           ],
           const SizedBox(height: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              _StatusChip(
-                label: paid ? 'Đã thanh toán' : 'Chưa thanh toán',
-                color: paid ? Colors.greenAccent : Colors.orangeAccent,
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: isPaid ? null : () => _showQrDialog(context),
+                  icon: const Icon(Icons.qr_code),
+                  label: const Text('Xem QR'),
+                ),
               ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  OutlinedButton(
-                    onPressed: () => _showQrDialog(context),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white24),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text('Xem QR'),
-                  ),
-                  if (!paid)
-                    ElevatedButton(
-                      onPressed: onConfirm,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE85B7A),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text('Xác nhận'),
-                    ),
-                ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: isPaid ? null : onConfirm,
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+                  child: const Text('Xác nhận đã chuyển'),
+                ),
               ),
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  final String label;
-  final Color color;
-
-  const _StatusChip({
-    required this.label,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w600,
-          fontSize: 12,
-        ),
       ),
     );
   }

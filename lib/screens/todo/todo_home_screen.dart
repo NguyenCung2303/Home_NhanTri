@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../models/todo_item.dart';
 import 'add_todo_screen.dart';
@@ -24,9 +25,9 @@ class _TodoHomeScreenState extends State<TodoHomeScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF2B1E24),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2B1E24),
+        backgroundColor: AppColors.background,
         elevation: 0,
         title: const Text('Thời gian biểu'),
         centerTitle: true,
@@ -51,7 +52,7 @@ class _TodoHomeScreenState extends State<TodoHomeScreen> {
                     padding: EdgeInsets.only(top: 16),
                     child: Text(
                       'Không có việc nào trong ngày',
-                      style: TextStyle(color: Colors.white54),
+                      style: TextStyle(color: AppColors.textSecondary),
                     ),
                   ),
               ],
@@ -60,7 +61,7 @@ class _TodoHomeScreenState extends State<TodoHomeScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFFE83E8C),
+        backgroundColor: AppColors.accent,
         icon: const Icon(Icons.add),
         label: const Text('Thêm việc'),
         onPressed: () async {
@@ -95,17 +96,17 @@ class _TodoHomeScreenState extends State<TodoHomeScreen> {
       },
       calendarStyle: CalendarStyle(
         todayDecoration: BoxDecoration(
-          color: Colors.pinkAccent.withOpacity(0.5),
+          color: AppColors.accent.withOpacity(0.25),
           shape: BoxShape.circle,
         ),
         selectedDecoration: const BoxDecoration(
-          color: Colors.pink,
+          color: AppColors.accent,
           shape: BoxShape.circle,
         ),
         defaultTextStyle:
-            const TextStyle(color: Colors.white),
+            const TextStyle(color: AppColors.textPrimary),
         weekendTextStyle:
-            const TextStyle(color: Colors.white70),
+            const TextStyle(color: AppColors.textSecondary),
       ),
       headerStyle: const HeaderStyle(
         titleCentered: true,
@@ -115,13 +116,13 @@ class _TodoHomeScreenState extends State<TodoHomeScreen> {
           fontWeight: FontWeight.w600,
         ),
         leftChevronIcon:
-            Icon(Icons.chevron_left, color: Colors.white),
+            Icon(Icons.chevron_left, color: AppColors.textPrimary),
         rightChevronIcon:
-            Icon(Icons.chevron_right, color: Colors.white),
+            Icon(Icons.chevron_right, color: AppColors.textPrimary),
       ),
       daysOfWeekStyle: const DaysOfWeekStyle(
-        weekdayStyle: TextStyle(color: Colors.white70),
-        weekendStyle: TextStyle(color: Colors.white70),
+        weekdayStyle: TextStyle(color: AppColors.textSecondary),
+        weekendStyle: TextStyle(color: AppColors.textSecondary),
       ),
     );
   }
@@ -161,11 +162,11 @@ class _TodoItem extends StatelessWidget {
     return CheckboxListTile(
       value: todo.completed,
       onChanged: (v) => onChanged(v!),
-      activeColor: Colors.pink,
+      activeColor: AppColors.accent,
       title: Text(
         todo.title,
         style: TextStyle(
-          color: Colors.white,
+          color: AppColors.textPrimary,
           decoration:
               todo.completed ? TextDecoration.lineThrough : null,
         ),

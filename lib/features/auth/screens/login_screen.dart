@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
-import '../../../screens/user_screens/main_shell.dart';
+import '../../../screens/admin_screens/admin_main_shell.dart';
 import '../../../screens/teacher_screens/teacher_main_shell.dart';
+import '../../../screens/user_screens/main_shell.dart';
+import '../../enrollment/screens/enrollment_request_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,9 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (username.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Vui lòng nhập đầy đủ tài khoản và mật khẩu'),
-        ),
+        const SnackBar(content: Text('Vui lòng nhập đầy đủ tài khoản và mật khẩu')),
       );
       return;
     }
@@ -48,29 +48,26 @@ class _LoginScreenState extends State<LoginScreen> {
       if (role == 'ADMIN') {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (_) => const TeacherMainShell(),
-          ),
+          MaterialPageRoute(builder: (_) => const AdminMainShell()),
+        );
+      } else if (role == 'TEACHER') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const TeacherMainShell()),
         );
       } else if (role == 'PARENT') {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-            builder: (_) => const MainShell(),
-          ),
+          MaterialPageRoute(builder: (_) => const MainShell()),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tài khoản không có quyền truy cập'),
-          ),
+          const SnackBar(content: Text('Tài khoản không có quyền truy cập')),
         );
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Đăng nhập thất bại'),
-        ),
+        SnackBar(content: Text(authProvider.errorMessage ?? 'Đăng nhập thất bại')),
       );
     }
   }
@@ -80,26 +77,20 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = context.watch<AuthProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Đăng nhập Home Nhân Trí'),
-      ),
+      appBar: AppBar(title: const Text('Đăng nhập Home Nhân Trí')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             TextField(
               controller: usernameController,
-              decoration: const InputDecoration(
-                labelText: 'Số điện thoại hoặc email',
-              ),
+              decoration: const InputDecoration(labelText: 'Số điện thoại hoặc email'),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: passwordController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Mật khẩu',
-              ),
+              decoration: const InputDecoration(labelText: 'Mật khẩu'),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
@@ -112,6 +103,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     )
                   : const Text('Đăng nhập'),
             ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EnrollmentRequestScreen()),
+                );
+              },
+              icon: const Icon(Icons.app_registration_rounded),
+              label: const Text('Phụ huynh mới? Đăng ký học'),
+            ),
+
           ],
         ),
       ),

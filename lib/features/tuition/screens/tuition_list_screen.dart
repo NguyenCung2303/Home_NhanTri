@@ -49,7 +49,7 @@ class _TuitionListScreenState extends State<TuitionListScreen> {
                   child: ListTile(
                     title: Text('${tuition.amount.toStringAsFixed(0)}đ'),
                     subtitle: Text(
-                      'Hạn đóng: ${tuition.dueDate}\nTrạng thái: ${tuition.status}',
+                      "Kỳ: ${tuition.tuitionPeriod ?? 'Chưa rõ'}\nHạn đóng: ${tuition.dueDate}\nTrạng thái: ${tuition.status}",
                     ),
                     isThreeLine: true,
                     trailing: Wrap(

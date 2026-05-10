@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 import '../models/todo_item.dart';
 
 class TodoTile extends StatelessWidget {
@@ -17,21 +18,22 @@ class TodoTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF4A4A4A),
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
           Checkbox(
             value: todo.completed,
             onChanged: (v) => onChanged(v!),
-            activeColor: const Color(0xFFE85B7A),
+            activeColor: AppColors.accent,
           ),
           Expanded(
             child: Text(
               todo.title,
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 decoration: todo.completed
                     ? TextDecoration.lineThrough
                     : null,
@@ -42,7 +44,7 @@ class TodoTile extends StatelessWidget {
             Text(
               '${todo.dueDate!.day}/${todo.dueDate!.month}',
               style: const TextStyle(
-                color: Colors.white54,
+                color: AppColors.textSecondary,
                 fontSize: 12,
               ),
             ),

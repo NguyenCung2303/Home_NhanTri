@@ -16,14 +16,13 @@ class TeacherStudentScreen extends StatefulWidget {
 }
 
 class _TeacherStudentScreenState extends State<TeacherStudentScreen> {
-  String _selectedClass = 'Tất cả';
-  final TextEditingController _searchController = TextEditingController();
+  ClassRoomModel? _selectedClass; // null = Tất cả
+  final _searchCtrl = TextEditingController();
   String _keyword = '';
 
   @override
   void initState() {
     super.initState();
-
     Future.microtask(() async {
       await context.read<StudentProvider>().loadStudents();
       await context.read<ClassRoomProvider>().loadClassRooms();
@@ -32,42 +31,63 @@ class _TeacherStudentScreenState extends State<TeacherStudentScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _searchCtrl.dispose();
     super.dispose();
   }
 
-  List<StudentModel> _filterStudents(
-    List<StudentModel> students,
-    List<ClassRoomModel> classRooms,
-  ) {
-    final filteredByKeyword = students.where((student) {
-      final name = student.fullName.toLowerCase();
-      return name.contains(_keyword.toLowerCase());
+  List<StudentModel> _filtered(List<StudentModel> all) {
+    return all.where((s) {
+      final matchName = s.fullName.toLowerCase().contains(_keyword.toLowerCase());
+      return matchName;
     }).toList();
+  }
 
-    if (_selectedClass == 'Tất cả') {
-      return filteredByKeyword;
+  Future<void> _reload() async {
+    if (_selectedClass == null) {
+      await context.read<StudentProvider>().loadStudents();
+    } else {
+      await context.read<StudentProvider>().loadStudentsByClass(_selectedClass!.id);
     }
+  }
 
-    return filteredByKeyword.where((student) {
-      return (student.note ?? '') == _selectedClass;
-    }).toList();
+  Future<void> _onClassChanged(ClassRoomModel? c) async {
+    setState(() => _selectedClass = c);
+    if (c == null) {
+      await context.read<StudentProvider>().loadStudents();
+    } else {
+      await context.read<StudentProvider>().loadStudentsByClass(c.id);
+    }
+  }
+
+  Future<void> _confirmDelete(StudentModel s) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: const Text('Xoá học sinh', style: TextStyle(color: AppColors.textPrimary)),
+        content: Text('Xoá "${s.fullName}" khỏi danh sách?',
+            style: const TextStyle(color: AppColors.textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Huỷ')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Xoá', style: TextStyle(color: Colors.redAccent))),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      await context.read<StudentProvider>().deleteStudent(s.id);
+      await context.read<ClassRoomProvider>().loadClassRooms();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final studentProvider = context.watch<StudentProvider>();
-    final classRoomProvider = context.watch<ClassRoomProvider>();
+    final classProvider = context.watch<ClassRoomProvider>();
 
-    final students = studentProvider.students;
-    final classRooms = classRoomProvider.classRooms;
-
-    final classNames = <String>[
-      'Tất cả',
-      ...classRooms.map((e) => e.className),
-    ];
-
-    final filtered = _filterStudents(students, classRooms);
+    final students = _filtered(studentProvider.students);
+    final classRooms = classProvider.classRooms;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -80,72 +100,81 @@ class _TeacherStudentScreenState extends State<TeacherStudentScreen> {
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () async {
-              await Navigator.push(
+              final result = await Navigator.push<bool>(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const TeacherAddStudentScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const TeacherAddStudentScreen()),
               );
-
-              if (!mounted) return;
-
-              context.read<StudentProvider>().loadStudents();
+              if (result == true && mounted) {
+                await _reload();
+                await context.read<ClassRoomProvider>().loadClassRooms();
+              }
             },
           ),
         ],
       ),
       body: Column(
         children: [
-          _SearchBox(
-            controller: _searchController,
-            onChanged: (value) {
-              setState(() {
-                _keyword = value;
-              });
-            },
+          // Search
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: TextField(
+              controller: _searchCtrl,
+              style: const TextStyle(color: AppColors.textPrimary),
+              onChanged: (v) => setState(() => _keyword = v),
+              decoration: InputDecoration(
+                hintText: 'Tìm kiếm học sinh...',
+                hintStyle: const TextStyle(color: AppColors.textSecondary),
+                prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                filled: true,
+                fillColor: AppColors.card,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
           ),
-          _ClassFilter(
-            classes: classNames,
-            current: _selectedClass,
-            onChanged: (v) => setState(() => _selectedClass = v),
+          // Filter by class
+          SizedBox(
+            height: 50,
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              scrollDirection: Axis.horizontal,
+              children: [
+                _FilterChip(
+                  label: 'Tất cả',
+                  active: _selectedClass == null,
+                  onTap: () => _onClassChanged(null),
+                ),
+                ...classRooms.map((c) => Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: _FilterChip(
+                        label: c.className,
+                        active: _selectedClass?.id == c.id,
+                        onTap: () => _onClassChanged(c),
+                      ),
+                    )),
+              ],
+            ),
           ),
+          // List
           Expanded(
             child: studentProvider.isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : filtered.isEmpty
+                : students.isEmpty
                     ? const Center(
-                        child: Text(
-                          'Chưa có học sinh',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
+                        child: Text('Không có học sinh',
+                            style: TextStyle(color: AppColors.textSecondary)),
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
-                        itemCount: filtered.length,
+                        itemCount: students.length,
                         itemBuilder: (_, i) {
-                          final student = filtered[i];
-
-                          final className =
-                              (student.note == null || student.note!.isEmpty)
-                                  ? 'Chưa gán lớp'
-                                  : student.note!;
-
-                          final parentName =
-                              (student.healthNote == null ||
-                                      student.healthNote!.isEmpty)
-                                  ? 'Chưa có phụ huynh'
-                                  : 'Phụ huynh: ${student.healthNote!}';
-
+                          final s = students[i];
                           return _StudentItem(
-                            student: student,
-                            className: className,
-                            parent: parentName,
-                            onTap: () => _showDetail(
-                              context,
-                              student: student,
-                              className: className,
-                              parentName: parentName,
-                            ),
+                            student: s,
+                            onDelete: () => _confirmDelete(s),
                           );
                         },
                       ),
@@ -154,150 +183,33 @@ class _TeacherStudentScreenState extends State<TeacherStudentScreen> {
       ),
     );
   }
-
-  void _showDetail(
-    BuildContext context, {
-    required StudentModel student,
-    required String className,
-    required String parentName,
-  }) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.card,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                student.fullName,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Lớp: $className',
-                style: const TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                parentName,
-                style: const TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Trường: ${student.school ?? 'Chưa có'}',
-                style: const TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Khối: ${student.grade ?? 'Chưa có'}',
-                style: const TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Ngày sinh: ${student.dateOfBirth ?? 'Chưa có'}',
-                style: const TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: const Text('Xem chi tiết'),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 }
 
-class _SearchBox extends StatelessWidget {
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
 
-  const _SearchBox({
-    required this.controller,
-    required this.onChanged,
-  });
+  const _FilterChip({required this.label, required this.active, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        decoration: InputDecoration(
-          hintText: 'Tìm kiếm học sinh',
-          hintStyle: const TextStyle(color: AppColors.textSecondary),
-          prefixIcon: const Icon(Icons.search),
-          filled: true,
-          fillColor: AppColors.card,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: active ? AppColors.accent : AppColors.card,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: active ? Colors.white : AppColors.textSecondary,
+            fontSize: 13,
+            fontWeight: active ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
-        style: const TextStyle(color: AppColors.textPrimary),
-      ),
-    );
-  }
-}
-
-class _ClassFilter extends StatelessWidget {
-  final List<String> classes;
-  final String current;
-  final ValueChanged<String> onChanged;
-
-  const _ClassFilter({
-    required this.classes,
-    required this.current,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        scrollDirection: Axis.horizontal,
-        itemCount: classes.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, index) {
-          final item = classes[index];
-          final active = item == current;
-
-          return ChoiceChip(
-            label: Text(item),
-            selected: active,
-            onSelected: (_) => onChanged(item),
-            selectedColor: AppColors.accent,
-            backgroundColor: AppColors.card,
-            labelStyle: TextStyle(
-              color: active ? Colors.white : AppColors.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
-          );
-        },
       ),
     );
   }
@@ -305,76 +217,95 @@ class _ClassFilter extends StatelessWidget {
 
 class _StudentItem extends StatelessWidget {
   final StudentModel student;
-  final String className;
-  final String parent;
-  final VoidCallback onTap;
+  final VoidCallback onDelete;
 
-  const _StudentItem({
-    required this.student,
-    required this.className,
-    required this.parent,
-    required this.onTap,
-  });
+  const _StudentItem({required this.student, required this.onDelete});
+
+  String get _genderText {
+    switch (student.gender) {
+      case 'MALE':
+        return 'Nam';
+      case 'FEMALE':
+        return 'Nữ';
+      default:
+        return '';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final school = student.school ?? 'Chưa có trường';
-    final grade = student.grade ?? 'Chưa có khối';
+    final s = student;
+    final sub = [
+      if (s.school != null && s.school!.isNotEmpty) s.school!,
+      if (s.grade != null && s.grade!.isNotEmpty) s.grade!,
+      if (_genderText.isNotEmpty) _genderText,
+    ].join(' • ');
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            const CircleAvatar(
-              backgroundColor: AppColors.accent,
-              child: Icon(Icons.person, color: Colors.white),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    student.fullName,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$school • $grade',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '$className • $parent',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: AppColors.accent.withOpacity(0.2),
+            child: Text(
+              s.fullName.isNotEmpty ? s.fullName[0].toUpperCase() : '?',
+              style: const TextStyle(
+                color: AppColors.accent,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const Icon(
-              Icons.chevron_right,
-              color: AppColors.textSecondary,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(s.fullName,
+                    style: const TextStyle(
+                        color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                if (sub.isNotEmpty)
+                  Text(sub,
+                      style: const TextStyle(
+                          color: AppColors.textSecondary, fontSize: 12)),
+                if (s.lichessUsername != null && s.lichessUsername!.isNotEmpty)
+                  Text('Lichess: ${s.lichessUsername}',
+                      style: const TextStyle(
+                          color: AppColors.textSecondary, fontSize: 12)),
+                if (s.joinDate != null)
+                  Text('Ngày vào: ${s.joinDate}',
+                      style: const TextStyle(
+                          color: AppColors.textSecondary, fontSize: 12)),
+              ],
             ),
-          ],
-        ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: s.status == 'ACTIVE'
+                  ? Colors.green.withOpacity(0.15)
+                  : Colors.red.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              s.status == 'ACTIVE' ? 'Đang học' : 'Nghỉ học',
+              style: TextStyle(
+                color: s.status == 'ACTIVE' ? Colors.greenAccent : Colors.redAccent,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onDelete,
+            child: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
+          ),
+        ],
       ),
     );
   }

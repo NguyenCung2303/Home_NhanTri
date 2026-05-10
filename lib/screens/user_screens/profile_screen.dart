@@ -104,14 +104,16 @@ class _ProfileHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF4A4A4A),
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+        boxShadow: AppColors.softShadow,
       ),
       child: Row(
         children: [
           const CircleAvatar(
             radius: 28,
-            backgroundColor: Color(0xFFE85B7A),
+            backgroundColor: AppColors.accent,
             child: Icon(Icons.person, color: Colors.white, size: 28),
           ),
           const SizedBox(width: 16),
@@ -121,7 +123,7 @@ class _ProfileHeader extends StatelessWidget {
               Text(
                 'Nguyễn Văn A',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
                 ),
@@ -130,7 +132,7 @@ class _ProfileHeader extends StatelessWidget {
               Text(
                 'Phụ huynh',
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: AppColors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -164,7 +166,7 @@ class _SettingTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFF4A4A4A),
+          color: AppColors.card,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -204,7 +206,7 @@ class _DangerTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF4A4A4A),
+          color: AppColors.card,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(

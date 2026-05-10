@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../features/auth/providers/auth_provider.dart';
-import '../../../screens/user_screens/main_shell.dart';
-import '../../../screens/teacher_screens/teacher_main_shell.dart';
+import '../theme/app_colors.dart';
+
+import '../features/auth/providers/auth_provider.dart';
+import 'admin_screens/admin_main_shell.dart';
+import 'teacher_screens/teacher_main_shell.dart';
+import 'user_screens/main_shell.dart';
+import '../features/enrollment/screens/enrollment_request_screen.dart';
+import '../models/enrollment_request_model.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -56,22 +62,21 @@ class _LoginScreenState extends State<LoginScreen> {
     if (role == 'PARENT') {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => const MainShell(),
-        ),
+        MaterialPageRoute(builder: (_) => const MainShell()),
       );
     } else if (role == 'ADMIN') {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => const TeacherMainShell(),
-        ),
+        MaterialPageRoute(builder: (_) => const AdminMainShell()),
+      );
+    } else if (role == 'TEACHER') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const TeacherMainShell()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tài khoản không có quyền truy cập'),
-        ),
+        const SnackBar(content: Text('Tài khoản không có quyền truy cập')),
       );
     }
   }
@@ -81,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = context.watch<AuthProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF3F3F3F),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -91,60 +96,47 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const SizedBox(height: 60),
-
                   const Text(
                     'Home Nhân Trí',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-
                   const SizedBox(height: 48),
-
                   TextField(
                     controller: usernameController,
                     keyboardType: TextInputType.text,
-                    style: const TextStyle(color: Colors.black),
+                    style: const TextStyle(color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Nhập số điện thoại hoặc email',
                       filled: true,
-                      fillColor: const Color(0xFFE6E6E6),
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 14,
-                        horizontal: 16,
-                      ),
+                      fillColor: AppColors.card,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
                   TextField(
                     controller: passwordController,
                     obscureText: true,
-                    style: const TextStyle(color: Colors.black),
+                    style: const TextStyle(color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Nhập mật khẩu',
                       filled: true,
-                      fillColor: const Color(0xFFE6E6E6),
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 14,
-                        horizontal: 16,
-                      ),
+                      fillColor: AppColors.card,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
                   SizedBox(
                     width: double.infinity,
                     height: 48,
@@ -176,23 +168,41 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const EnrollmentRequestScreen()),
+                        );
+                      },
+                      icon: const Icon(Icons.app_registration_rounded),
+                      label: const Text('Phụ huynh mới? Đăng ký học'),
+                    ),
+                  ),
                   const SizedBox(height: 16),
-
                   const Text(
                     'Tài khoản mẫu:',
-                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
                   ),
                   const SizedBox(height: 6),
                   const Text(
                     'Admin: 0900000001 / 123456',
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Giáo viên: 0900000003 / 123456',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                   ),
                   const SizedBox(height: 4),
                   const Text(
                     'Phụ huynh: 0900000002 / 123456',
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                   ),
-
                   const SizedBox(height: 40),
                 ],
               ),

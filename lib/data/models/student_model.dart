@@ -11,6 +11,7 @@ class StudentModel {
   final String status;
   final String? avatarUrl;
   final String? note;
+  final String? lichessUsername;
   final String createdAt;
 
   StudentModel({
@@ -26,6 +27,7 @@ class StudentModel {
     required this.status,
     this.avatarUrl,
     this.note,
+    this.lichessUsername,
     required this.createdAt,
   });
 
@@ -43,6 +45,7 @@ class StudentModel {
       'status': status,
       'avatar_url': avatarUrl,
       'note': note,
+      'lichess_username': lichessUsername,
       'created_at': createdAt,
     };
   }
@@ -61,7 +64,42 @@ class StudentModel {
       status: map['status'],
       avatarUrl: map['avatar_url'],
       note: map['note'],
+      lichessUsername: map['lichess_username'],
       createdAt: map['created_at'],
+    );
+  }
+
+  StudentModel copyWith({
+    String? id,
+    String? fullName,
+    String? dateOfBirth,
+    String? gender,
+    String? school,
+    String? grade,
+    String? address,
+    String? healthNote,
+    String? joinDate,
+    String? status,
+    String? avatarUrl,
+    String? note,
+    String? lichessUsername,
+    String? createdAt,
+  }) {
+    return StudentModel(
+      id: id ?? this.id,
+      fullName: fullName ?? this.fullName,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+      gender: gender ?? this.gender,
+      school: school ?? this.school,
+      grade: grade ?? this.grade,
+      address: address ?? this.address,
+      healthNote: healthNote ?? this.healthNote,
+      joinDate: joinDate ?? this.joinDate,
+      status: status ?? this.status,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      note: note ?? this.note,
+      lichessUsername: lichessUsername ?? this.lichessUsername,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

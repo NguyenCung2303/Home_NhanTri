@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/todo_item.dart';
 
@@ -27,9 +28,9 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF3F3F3F),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF3F3F3F),
+        backgroundColor: AppColors.background,
         elevation: 0,
         title: const Text('Thêm việc cần làm'),
       ),
@@ -39,12 +40,12 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
           children: [
             TextField(
               controller: _titleCtrl,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Việc cần làm',
-                hintStyle: const TextStyle(color: Colors.white54),
+                hintStyle: const TextStyle(color: AppColors.textSecondary),
                 filled: true,
-                fillColor: const Color(0xFF4A4A4A),
+                fillColor: AppColors.card,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -58,11 +59,11 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              tileColor: const Color(0xFF4A4A4A),
-              leading: const Icon(Icons.calendar_today, color: Colors.white70),
+              tileColor: AppColors.card,
+              leading: const Icon(Icons.calendar_today, color: AppColors.textSecondary),
               title: Text(
                 '${_dueDate.day}/${_dueDate.month}/${_dueDate.year}',
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: AppColors.textPrimary),
               ),
               onTap: _pickDate,
             ),
@@ -74,7 +75,7 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
               height: 48,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE85B7A),
+                  backgroundColor: AppColors.accent,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24),
                   ),

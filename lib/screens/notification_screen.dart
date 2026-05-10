@@ -95,9 +95,10 @@ class _NotificationItem extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: read
-              ? const Color(0xFF4A4A4A)
-              : const Color(0xFF5A5A5A),
+              ? AppColors.card
+              : AppColors.accentSoft,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,7 +124,7 @@ class _NotificationItem extends StatelessWidget {
                   Text(
                     content,
                     style: const TextStyle(
-                      color: Colors.white70,
+                      color: AppColors.textSecondary,
                       fontSize: 13,
                     ),
                   ),
@@ -136,7 +137,7 @@ class _NotificationItem extends StatelessWidget {
                 Text(
                   time,
                   style: const TextStyle(
-                    color: Colors.white54,
+                    color: AppColors.textSecondary,
                     fontSize: 12,
                   ),
                 ),
@@ -188,11 +189,11 @@ class _EmptyState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: const [
           Icon(Icons.notifications_off,
-              color: Colors.white54, size: 48),
+              color: AppColors.textSecondary, size: 48),
           SizedBox(height: 12),
           Text(
             'Chưa có thông báo',
-            style: TextStyle(color: Colors.white54),
+            style: TextStyle(color: AppColors.textSecondary),
           ),
         ],
       ),

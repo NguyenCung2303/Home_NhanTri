@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class TodoCalendarScreen extends StatefulWidget {
@@ -26,9 +27,9 @@ class _TodoCalendarScreenState extends State<TodoCalendarScreen> {
     final key = _keyOf(_selectedDay);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF2B1E24),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2B1E24),
+        backgroundColor: AppColors.background,
         elevation: 0,
         title: const Text('Thời gian biểu'),
         centerTitle: true,
@@ -55,7 +56,7 @@ class _TodoCalendarScreenState extends State<TodoCalendarScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFFE83E8C),
+        backgroundColor: AppColors.accent,
         icon: const Icon(Icons.add),
         label: const Text('Thêm sự kiện'),
         onPressed: () {},
@@ -77,29 +78,29 @@ class _TodoCalendarScreenState extends State<TodoCalendarScreen> {
       },
       calendarStyle: CalendarStyle(
         todayDecoration: BoxDecoration(
-          color: Colors.pinkAccent.withOpacity(0.5),
+          color: AppColors.accent.withOpacity(0.25),
           shape: BoxShape.circle,
         ),
         selectedDecoration: const BoxDecoration(
-          color: Colors.pink,
+          color: AppColors.accent,
           shape: BoxShape.circle,
         ),
-        defaultTextStyle: const TextStyle(color: Colors.white),
-        weekendTextStyle: const TextStyle(color: Colors.white70),
+        defaultTextStyle: const TextStyle(color: AppColors.textPrimary),
+        weekendTextStyle: const TextStyle(color: AppColors.textSecondary),
       ),
       headerStyle: const HeaderStyle(
         titleCentered: true,
         formatButtonVisible: false,
         titleTextStyle:
-            TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
         leftChevronIcon:
-            Icon(Icons.chevron_left, color: Colors.white),
+            Icon(Icons.chevron_left, color: AppColors.textPrimary),
         rightChevronIcon:
-            Icon(Icons.chevron_right, color: Colors.white),
+            Icon(Icons.chevron_right, color: AppColors.textPrimary),
       ),
       daysOfWeekStyle: const DaysOfWeekStyle(
-        weekdayStyle: TextStyle(color: Colors.white70),
-        weekendStyle: TextStyle(color: Colors.white70),
+        weekdayStyle: TextStyle(color: AppColors.textSecondary),
+        weekendStyle: TextStyle(color: AppColors.textSecondary),
       ),
     );
   }
@@ -137,8 +138,8 @@ class _Section extends StatelessWidget {
         ...items.map(
           (e) => ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(icon, color: Colors.white70),
-            title: Text(e, style: const TextStyle(color: Colors.white)),
+            leading: Icon(icon, color: AppColors.textSecondary),
+            title: Text(e, style: const TextStyle(color: AppColors.textPrimary)),
           ),
         ),
       ],
@@ -168,9 +169,9 @@ class _TodoSection extends StatelessWidget {
           (t) => CheckboxListTile(
             value: false,
             onChanged: (_) {},
-            activeColor: Colors.pink,
+            activeColor: AppColors.accent,
             title:
-                Text(t, style: const TextStyle(color: Colors.white)),
+                Text(t, style: const TextStyle(color: AppColors.textPrimary)),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
           ),

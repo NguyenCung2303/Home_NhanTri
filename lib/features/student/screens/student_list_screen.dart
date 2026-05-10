@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../data/models/student_model.dart';
+
 import '../providers/student_provider.dart';
+import 'student_form_screen.dart';
 
 class StudentListScreen extends StatefulWidget {
   const StudentListScreen({super.key});
@@ -25,30 +26,44 @@ class _StudentListScreenState extends State<StudentListScreen> {
       appBar: AppBar(title: const Text('Danh sách học sinh')),
       body: provider.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: provider.students.length,
-              itemBuilder: (context, index) {
-                final student = provider.students[index];
-                return ListTile(
-                  title: Text(student.fullName),
-                  subtitle: Text(student.school ?? 'Chưa có trường'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () => provider.deleteStudent(student.id),
-                  ),
-                );
-              },
-            ),
+          : provider.students.isEmpty
+              ? const Center(child: Text('Chưa có học sinh'))
+              : ListView.builder(
+                  itemCount: provider.students.length,
+                  itemBuilder: (context, index) {
+                    final student = provider.students[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      child: ListTile(
+                        title: Text(student.fullName),
+                        subtitle: Text(
+                          '${student.school ?? 'Chưa có trường'}\nLichess: ${student.lichessUsername?.isNotEmpty == true ? student.lichessUsername : 'Chưa nhập'}',
+                        ),
+                        isThreeLine: true,
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => StudentFormScreen(student: student)),
+                          );
+                          if (!mounted) return;
+                          context.read<StudentProvider>().loadStudents();
+                        },
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete),
+                          onPressed: () => provider.deleteStudent(student.id),
+                        ),
+                      ),
+                    );
+                  },
+                ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          final student = StudentModel(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-            fullName: 'Học sinh mới',
-            school: 'Tiểu học B',
-            status: 'ACTIVE',
-            createdAt: DateTime.now().toIso8601String(),
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const StudentFormScreen()),
           );
-          await provider.addStudent(student);
+          if (!mounted) return;
+          context.read<StudentProvider>().loadStudents();
         },
         child: const Icon(Icons.add),
       ),

@@ -67,6 +67,7 @@ class DefaultFirebaseOptions {
     projectId: 'nhantri-52a8d',
     databaseURL: 'https://nhantri-52a8d-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'nhantri-52a8d.firebasestorage.app',
+    iosClientId: '421468289426-lt0tab9m5p5ed9dddoag1bvq8djie1mo.apps.googleusercontent.com',
     iosBundleId: 'com.example.appNhanTri',
   );
 
@@ -77,6 +78,7 @@ class DefaultFirebaseOptions {
     projectId: 'nhantri-52a8d',
     databaseURL: 'https://nhantri-52a8d-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'nhantri-52a8d.firebasestorage.app',
+    iosClientId: '421468289426-lt0tab9m5p5ed9dddoag1bvq8djie1mo.apps.googleusercontent.com',
     iosBundleId: 'com.example.appNhanTri',
   );
 
@@ -90,4 +92,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'nhantri-52a8d.firebasestorage.app',
     measurementId: 'G-MZXXSKTQCL',
   );
+
 }

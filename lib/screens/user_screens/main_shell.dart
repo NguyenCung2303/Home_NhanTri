@@ -3,6 +3,7 @@ import 'home_screen.dart';
 import 'message_screen.dart';
 import 'calendar_screen.dart';
 import 'profile_screen.dart';
+import 'parent_learning_guidance_screen.dart';
 import '../../theme/app_colors.dart';
 
 class MainShell extends StatefulWidget {
@@ -19,6 +20,7 @@ class _MainShellState extends State<MainShell> {
     HomeScreen(),
     MessageScreen(),
     CalendarScreen(),
+    ParentLearningGuidanceScreen(),
     ProfileScreen(),
   ];
 
@@ -28,18 +30,14 @@ class _MainShellState extends State<MainShell> {
       backgroundColor: AppColors.background,
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.background,
-          border: Border(
-            top: BorderSide(
-              color: AppColors.card,
-              width: 1,
-            ),
-          ),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          boxShadow: AppColors.softShadow,
+          border: Border(top: BorderSide(color: AppColors.border, width: 1)),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          backgroundColor: AppColors.background,
+          backgroundColor: AppColors.card,
           selectedItemColor: AppColors.accent,
           unselectedItemColor: AppColors.textSecondary,
           type: BottomNavigationBarType.fixed,
@@ -58,6 +56,10 @@ class _MainShellState extends State<MainShell> {
             BottomNavigationBarItem(
               icon: Icon(Icons.calendar_today),
               label: 'Lịch',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.school_outlined),
+              label: 'Định hướng',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person),

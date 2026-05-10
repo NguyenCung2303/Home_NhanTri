@@ -8,11 +8,14 @@ class TuitionProvider extends ChangeNotifier {
   List<TuitionModel> tuitions = [];
   bool isLoading = false;
 
-  Future<void> loadTuitions() async {
+  Future<void> loadTuitions({String? parentUserId}) async {
     isLoading = true;
     notifyListeners();
 
-    tuitions = await _repository.getAllTuitions();
+    await _repository.refreshOverdueStatuses();
+    tuitions = parentUserId == null
+        ? await _repository.getAllTuitions()
+        : await _repository.getTuitionsByParentUserId(parentUserId);
 
     isLoading = false;
     notifyListeners();
@@ -21,6 +24,22 @@ class TuitionProvider extends ChangeNotifier {
   Future<void> addTuition(TuitionModel tuition) async {
     await _repository.addTuition(tuition);
     await loadTuitions();
+  }
+
+  Future<int> generateMonthlyTuitionsForClass({
+    required String classId,
+    required String tuitionPeriod,
+    required String dueDate,
+    String? note,
+  }) async {
+    final count = await _repository.generateMonthlyTuitionsForClass(
+      classId: classId,
+      tuitionPeriod: tuitionPeriod,
+      dueDate: dueDate,
+      note: note,
+    );
+    await loadTuitions();
+    return count;
   }
 
   Future<void> deleteTuition(String id) async {
