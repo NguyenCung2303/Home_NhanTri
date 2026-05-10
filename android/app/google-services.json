@@ -13,7 +13,12 @@
           "package_name": "com.example.app_nhan_tri"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "421468289426-grrrcpmgauhiittmn89v76358jc4stin.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAvNK6NMb7rGu0qilc72-J0bE2RLQ3gGIY"
@@ -21,7 +26,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "421468289426-grrrcpmgauhiittmn89v76358jc4stin.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "421468289426-lt0tab9m5p5ed9dddoag1bvq8djie1mo.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.appNhanTri"
+              }
+            }
+          ]
         }
       }
     }
