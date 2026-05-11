@@ -13,6 +13,7 @@ class UserModel {
     required this.fullName,
     this.phone,
     this.email,
+    
     required this.passwordHash,
     required this.role,
     required this.status,
@@ -44,4 +45,32 @@ class UserModel {
       createdAt: map['created_at'],
     );
   }
+  factory UserModel.fromFirestore(
+  String id,
+  Map<String, dynamic> fields,
+) {
+  String str(String key) {
+    final value = fields[key];
+    if (value == null) return '';
+
+    return value['stringValue']?.toString() ??
+        value['timestampValue']?.toString() ??
+        '';
+  }
+
+  return UserModel(
+    id: id,
+    fullName: str('fullName').isNotEmpty ? str('fullName') : str('full_name'),
+    phone: str('phone').isNotEmpty ? str('phone') : null,
+    email: str('email').isNotEmpty ? str('email') : null,
+    passwordHash: str('passwordHash').isNotEmpty
+        ? str('passwordHash')
+        : str('password_hash'),
+    role: str('role').isNotEmpty ? str('role') : 'PARENT',
+    status: str('status').isNotEmpty ? str('status') : 'ACTIVE',
+    createdAt: str('createdAt').isNotEmpty
+        ? str('createdAt')
+        : DateTime.now().toIso8601String(),
+  );
+}
 }

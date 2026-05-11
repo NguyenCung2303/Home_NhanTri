@@ -50,4 +50,31 @@ class AttendanceRecordModel {
       updatedAt: map['updated_at'] as String?,
     );
   }
+  factory AttendanceRecordModel.fromFirestore(
+  String id,
+  Map<String, dynamic> fields,
+) {
+  String str(String key) {
+    final value = fields[key];
+    if (value == null) return '';
+
+    return value['stringValue']?.toString() ??
+        value['timestampValue']?.toString() ??
+        '';
+  }
+
+  return AttendanceRecordModel(
+    id: id,
+    scheduleId: str('scheduleId'),
+    classId: str('classId'),
+    studentId: str('studentId'),
+    attendanceDate: str('attendanceDate'),
+    status: str('status'),
+    note: str('note').isNotEmpty ? str('note') : null,
+    createdAt: str('createdAt'),
+    updatedAt: str('updatedAt').isNotEmpty
+        ? str('updatedAt')
+        : null,
+  );
+}
 }

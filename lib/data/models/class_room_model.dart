@@ -9,21 +9,25 @@ class ClassRoomModel {
   final int currentStudents;
   final String? roomName;
   final String status;
+  final String? teacherId;
+  final String? teacherName;
   final String createdAt;
 
   ClassRoomModel({
-    required this.id,
-    required this.classCode,
-    required this.className,
-    this.description,
-    this.level,
-    required this.tuitionFee,
-    required this.maxStudents,
-    required this.currentStudents,
-    this.roomName,
-    required this.status,
-    required this.createdAt,
-  });
+  required this.id,
+  required this.classCode,
+  required this.className,
+  this.description,
+  this.level,
+  required this.tuitionFee,
+  required this.maxStudents,
+  required this.currentStudents,
+  this.roomName,
+  required this.status,
+  this.teacherId,
+  this.teacherName,
+  required this.createdAt,
+});
 
   Map<String, dynamic> toMap() {
     return {
@@ -37,6 +41,8 @@ class ClassRoomModel {
       'current_students': currentStudents,
       'room_name': roomName,
       'status': status,
+      'teacher_id': teacherId,
+      'teacher_name': teacherName,
       'created_at': createdAt,
     };
   }
@@ -53,7 +59,45 @@ class ClassRoomModel {
       currentStudents: map['current_students'],
       roomName: map['room_name'],
       status: map['status'],
+      teacherId: map['teacher_id'],
+      teacherName: map['teacher_name'],
       createdAt: map['created_at'],
     );
   }
+  factory ClassRoomModel.fromFirestore(
+  String id,
+  Map<String, dynamic> fields,
+) {
+  String str(String key) {
+    final value = fields[key];
+    if (value == null) return '';
+
+    return value['stringValue']?.toString() ??
+        value['integerValue']?.toString() ??
+        value['doubleValue']?.toString() ??
+        value['timestampValue']?.toString() ??
+        '';
+  }
+
+  int intValue(String key) => int.tryParse(str(key)) ?? 0;
+  double doubleValue(String key) => double.tryParse(str(key)) ?? 0;
+
+  return ClassRoomModel(
+    id: id,
+    classCode: str('classCode'),
+    className: str('className'),
+    description: str('description').isNotEmpty ? str('description') : null,
+    level: str('level').isNotEmpty ? str('level') : null,
+    tuitionFee: doubleValue('tuitionFee'),
+    maxStudents: intValue('maxStudents'),
+    currentStudents: intValue('currentStudents'),
+    roomName: str('roomName').isNotEmpty ? str('roomName') : null,
+    status: str('status').isNotEmpty ? str('status') : 'ACTIVE',
+    teacherId: str('teacherId').isNotEmpty ? str('teacherId') : null,
+    teacherName: str('teacherName').isNotEmpty ? str('teacherName') : null,
+    createdAt: str('createdAt').isNotEmpty
+        ? str('createdAt')
+        : DateTime.now().toIso8601String(),
+  );
+}
 }

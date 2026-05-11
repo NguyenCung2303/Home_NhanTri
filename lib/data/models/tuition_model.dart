@@ -64,4 +64,53 @@ class TuitionModel {
       createdAt: map['created_at'],
     );
   }
+
+  factory TuitionModel.fromFirestore(
+    String id,
+    Map<String, dynamic> fields,
+  ) {
+    String str(String key) {
+      final value = fields[key];
+      if (value == null) return '';
+
+      return value['stringValue']?.toString() ??
+          value['timestampValue']?.toString() ??
+          value['integerValue']?.toString() ??
+          value['doubleValue']?.toString() ??
+          '';
+    }
+
+    double number(String key) {
+      final value = fields[key];
+      if (value == null) return 0;
+
+      final raw = value['doubleValue'] ??
+          value['integerValue'] ??
+          value['stringValue'];
+
+      if (raw == null) return 0;
+      return double.tryParse(raw.toString()) ?? 0;
+    }
+
+    return TuitionModel(
+      id: id,
+      studentId: str('studentId'),
+      classId: str('classId'),
+      amount: number('amount'),
+      dueDate: str('dueDate'),
+      paidDate: str('paidDate').isNotEmpty ? str('paidDate') : null,
+      status: str('status').isNotEmpty ? str('status') : 'UNPAID',
+      paymentMethod:
+          str('paymentMethod').isNotEmpty ? str('paymentMethod') : null,
+      transactionCode:
+          str('transactionCode').isNotEmpty ? str('transactionCode') : null,
+      qrContent: str('qrContent').isNotEmpty ? str('qrContent') : null,
+      note: str('note').isNotEmpty ? str('note') : null,
+      tuitionPeriod:
+          str('tuitionPeriod').isNotEmpty ? str('tuitionPeriod') : null,
+      createdAt: str('createdAt').isNotEmpty
+          ? str('createdAt')
+          : DateTime.now().toIso8601String(),
+    );
+  }
 }

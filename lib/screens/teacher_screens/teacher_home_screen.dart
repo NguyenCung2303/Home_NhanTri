@@ -6,7 +6,6 @@ import 'teacher_tuition_screen.dart';
 import 'teacher_student_screen.dart';
 import 'teacher_staff_screen.dart';
 import 'teacher_class_screen.dart';
-import '../notification_screen.dart';
 import '../../theme/app_colors.dart';
 import '../../features/parent/screens/parent_list_screen.dart';
 
@@ -47,6 +46,18 @@ class TeacherHomeScreen extends StatelessWidget {
               },
             ),
             _TeacherCard(
+              title: 'Điểm danh',
+              icon: Icons.fact_check,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const TeacherClassScreen(attendanceMode: true),
+                  ),
+                );
+              },
+            ),
+            _TeacherCard(
               title: 'Học sinh',
               icon: Icons.group,
               onTap: () {
@@ -66,18 +77,6 @@ class TeacherHomeScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (_) => const TeacherTuitionScreen(),
-                  ),
-                );
-              },
-            ),
-            _TeacherCard(
-              title: 'Thông báo',
-              icon: Icons.notifications,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const NotificationScreen(),
                   ),
                 );
               },

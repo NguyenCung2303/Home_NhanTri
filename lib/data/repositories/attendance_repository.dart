@@ -1,9 +1,11 @@
-import 'package:uuid/uuid.dart';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
 
 import '../models/attendance_record_model.dart';
 import '../models/student_model.dart';
 import '../models/student_tag_model.dart';
-import '../services/database_service.dart';
+import 'student_repository.dart';
 
 class AttendanceSummary {
   final int presentCount;
@@ -18,65 +20,32 @@ class AttendanceSummary {
 }
 
 class AttendanceRepository {
-  static final _uuid = Uuid();
+  static const String _projectId = 'nhantri-52a8d';
+  static const String _baseUrl =
+      'https://firestore.googleapis.com/v1/projects/$_projectId/databases/(default)/documents';
+
+  final StudentRepository _studentRepository = StudentRepository();
 
   Future<List<StudentModel>> getStudentsForClass(String classId) async {
-    final db = await DatabaseService.instance.database;
-    final result = await db.rawQuery('''
-      SELECT s.*
-      FROM students s
-      INNER JOIN class_student cs ON cs.student_id = s.id
-      WHERE cs.class_id = ? AND cs.status = 'ACTIVE' AND s.status = 'ACTIVE'
-      ORDER BY s.full_name ASC
-    ''', [classId]);
-
-    return result.map(StudentModel.fromMap).toList();
+    return _studentRepository.getStudentsByClass(classId);
   }
 
-
   Future<List<StudentTagModel>> getActiveStudentTags() async {
-    final db = await DatabaseService.instance.database;
-    final result = await db.rawQuery('''
-      SELECT
-        t.*,
-        COUNT(CASE WHEN sta.status = 'ACTIVE' THEN sta.student_id END) AS student_count
-      FROM student_tags t
-      LEFT JOIN student_tag_assignments sta ON sta.tag_id = t.id
-      WHERE t.status = 'ACTIVE'
-      GROUP BY t.id
-      ORDER BY t.sort_order ASC, t.tag_name ASC
-    ''');
-
-    return result.map(StudentTagModel.fromMap).toList();
+    return [];
   }
 
   Future<List<StudentModel>> getStudentsForTag(String tagId) async {
-    final db = await DatabaseService.instance.database;
-    final result = await db.rawQuery('''
-      SELECT s.*
-      FROM students s
-      INNER JOIN student_tag_assignments sta ON sta.student_id = s.id
-      WHERE sta.tag_id = ? AND sta.status = 'ACTIVE' AND s.status = 'ACTIVE'
-      ORDER BY s.full_name ASC
-    ''', [tagId]);
-
-    return result.map(StudentModel.fromMap).toList();
+    return [];
   }
 
   Future<List<AttendanceRecordModel>> getAttendanceForTagOnDate({
     required String tagId,
     required String attendanceDate,
   }) async {
-    final db = await DatabaseService.instance.database;
-    final groupClassId = 'TAG_$tagId';
-    final result = await db.query(
-      'attendance_records',
-      where: 'class_id = ? AND attendance_date = ?',
-      whereArgs: [groupClassId, attendanceDate],
-      orderBy: 'created_at ASC',
+    return getAttendanceForClassOnDate(
+      classId: 'TAG_$tagId',
+      attendanceDate: attendanceDate,
     );
-
-    return result.map(AttendanceRecordModel.fromMap).toList();
   }
 
   Future<void> saveTagAttendance({
@@ -92,38 +61,36 @@ class AttendanceRepository {
     );
   }
 
-
   Future<List<AttendanceRecordModel>> getAttendanceForGroupInMonth({
     required String classId,
     required int year,
     required int month,
   }) async {
-    final db = await DatabaseService.instance.database;
-    final monthText = month.toString().padLeft(2, '0');
-    final prefix = '$year-$monthText';
-    final result = await db.query(
-      'attendance_records',
-      where: 'class_id = ? AND attendance_date LIKE ?',
-      whereArgs: [classId, '$prefix%'],
-      orderBy: 'attendance_date ASC, created_at ASC',
-    );
+    final records = await _getAllAttendanceRecords(pageSize: 500);
+    final prefix = '$year-${month.toString().padLeft(2, '0')}';
 
-    return result.map(AttendanceRecordModel.fromMap).toList();
+    return records.where((record) {
+      return record.classId == classId &&
+          record.attendanceDate.startsWith(prefix);
+    }).toList()
+      ..sort((a, b) {
+        final dateCompare = a.attendanceDate.compareTo(b.attendanceDate);
+        if (dateCompare != 0) return dateCompare;
+        return a.createdAt.compareTo(b.createdAt);
+      });
   }
 
   Future<List<AttendanceRecordModel>> getAttendanceForClassOnDate({
     required String classId,
     required String attendanceDate,
   }) async {
-    final db = await DatabaseService.instance.database;
-    final result = await db.query(
-      'attendance_records',
-      where: 'class_id = ? AND attendance_date = ?',
-      whereArgs: [classId, attendanceDate],
-      orderBy: 'created_at ASC',
-    );
+    final records = await _getAllAttendanceRecords(pageSize: 200);
 
-    return result.map(AttendanceRecordModel.fromMap).toList();
+    return records.where((record) {
+      return record.classId == classId &&
+          record.attendanceDate == attendanceDate;
+    }).toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
   }
 
   Future<void> saveAttendance({
@@ -132,66 +99,137 @@ class AttendanceRepository {
     required Map<String, bool> studentPresentMap,
     String? scheduleId,
   }) async {
-    final db = await DatabaseService.instance.database;
-    final now = DateTime.now().toIso8601String();
+    final now = DateTime.now().toUtc().toIso8601String();
     final effectiveScheduleId = scheduleId ?? '${classId}_$attendanceDate';
 
-    await db.transaction((txn) async {
-      for (final entry in studentPresentMap.entries) {
-        final existing = await txn.query(
-          'attendance_records',
-          where: 'class_id = ? AND student_id = ? AND attendance_date = ?',
-          whereArgs: [classId, entry.key, attendanceDate],
-          limit: 1,
-        );
+    for (final entry in studentPresentMap.entries) {
+      final studentId = entry.key;
+      final documentId = _safeDocumentId('${effectiveScheduleId}_$studentId');
 
-        final payload = {
-          'schedule_id': effectiveScheduleId,
-          'class_id': classId,
-          'student_id': entry.key,
-          'attendance_date': attendanceDate,
-          'status': entry.value ? 'PRESENT' : 'ABSENT',
-          'updated_at': now,
-        };
+      final existing = await _getAttendanceDocument(documentId);
+      final createdAt = existing?.createdAt ?? now;
 
-        if (existing.isEmpty) {
-          await txn.insert('attendance_records', {
-            'id': _uuid.v4(),
-            ...payload,
-            'note': null,
-            'created_at': now,
-          });
-        } else {
-          await txn.update(
-            'attendance_records',
-            payload,
-            where: 'id = ?',
-            whereArgs: [existing.first['id']],
-          );
+      final url = Uri.parse(
+        '$_baseUrl/attendance_records/$documentId'
+        '?updateMask.fieldPaths=scheduleId'
+        '&updateMask.fieldPaths=classId'
+        '&updateMask.fieldPaths=studentId'
+        '&updateMask.fieldPaths=attendanceDate'
+        '&updateMask.fieldPaths=status'
+        '&updateMask.fieldPaths=note'
+        '&updateMask.fieldPaths=createdAt'
+        '&updateMask.fieldPaths=updatedAt',
+      );
+
+      final body = {
+        'fields': {
+          'scheduleId': {'stringValue': effectiveScheduleId},
+          'classId': {'stringValue': classId},
+          'studentId': {'stringValue': studentId},
+          'attendanceDate': {'stringValue': attendanceDate},
+          'status': {'stringValue': entry.value ? 'PRESENT' : 'ABSENT'},
+          'note': {'stringValue': existing?.note ?? ''},
+          'createdAt': {'timestampValue': createdAt},
+          'updatedAt': {'timestampValue': now},
         }
+      };
+
+      final response = await http.patch(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception('Không lưu được điểm danh: ${response.body}');
       }
-    });
+    }
   }
 
-  Future<List<AttendanceRecordModel>> getAttendanceByParentUserId(String userId) async {
-    final db = await DatabaseService.instance.database;
-    final result = await db.rawQuery('''
-      SELECT ar.*
-      FROM attendance_records ar
-      INNER JOIN parent_student ps ON ps.student_id = ar.student_id
-      INNER JOIN parents p ON p.id = ps.parent_id
-      WHERE p.user_id = ?
-      ORDER BY ar.attendance_date DESC, ar.created_at DESC
-    ''', [userId]);
+  Future<List<AttendanceRecordModel>> getAttendanceByParentUserId(
+    String userId,
+  ) async {
+    final students = await _studentRepository.getStudentsByParentUserId(userId);
+    if (students.isEmpty) return [];
 
-    return result.map(AttendanceRecordModel.fromMap).toList();
+    final studentIds = students.map((student) => student.id).toSet();
+    final records = await _getAllAttendanceRecords(pageSize: 500);
+
+    return records
+        .where((record) => studentIds.contains(record.studentId))
+        .toList()
+      ..sort((a, b) {
+        final dateCompare = b.attendanceDate.compareTo(a.attendanceDate);
+        if (dateCompare != 0) return dateCompare;
+        return b.createdAt.compareTo(a.createdAt);
+      });
   }
 
-  Future<AttendanceSummary> getAttendanceSummaryByParentUserId(String userId) async {
+  Future<AttendanceSummary> getAttendanceSummaryByParentUserId(
+    String userId,
+  ) async {
     final records = await getAttendanceByParentUserId(userId);
     final present = records.where((e) => e.status == 'PRESENT').length;
     final absent = records.where((e) => e.status == 'ABSENT').length;
 
-    return AttendanceSummary(presentCount: present, absentCount: absent);
+    return AttendanceSummary(
+      presentCount: present,
+      absentCount: absent,
+    );
+  }
+
+  Future<List<AttendanceRecordModel>> _getAllAttendanceRecords({
+    required int pageSize,
+  }) async {
+    final url = Uri.parse('$_baseUrl/attendance_records?pageSize=$pageSize');
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 404) {
+      return [];
+    }
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Không tải được dữ liệu điểm danh: ${response.body}');
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final documents = data['documents'] as List<dynamic>? ?? [];
+
+    return documents.map((doc) {
+      final document = doc as Map<String, dynamic>;
+      final name = document['name']?.toString() ?? '';
+      final id = name.split('/').last;
+      final fields = document['fields'] as Map<String, dynamic>? ?? {};
+
+      return AttendanceRecordModel.fromFirestore(id, fields);
+    }).toList();
+  }
+
+  Future<AttendanceRecordModel?> _getAttendanceDocument(String documentId) async {
+    final url = Uri.parse('$_baseUrl/attendance_records/$documentId');
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 404) {
+      return null;
+    }
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Không kiểm tra được điểm danh cũ: ${response.body}');
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final fields = data['fields'] as Map<String, dynamic>? ?? {};
+
+    return AttendanceRecordModel.fromFirestore(documentId, fields);
+  }
+
+  String _safeDocumentId(String value) {
+    return value
+        .replaceAll('/', '_')
+        .replaceAll(' ', '_')
+        .replaceAll(':', '_')
+        .replaceAll('.', '_');
   }
 }

@@ -11,8 +11,10 @@ class StudentModel {
   final String status;
   final String? avatarUrl;
   final String? note;
+  final String? classId;
   final String? lichessUsername;
   final String createdAt;
+  
 
   StudentModel({
     required this.id,
@@ -27,8 +29,10 @@ class StudentModel {
     required this.status,
     this.avatarUrl,
     this.note,
+    this.classId,
     this.lichessUsername,
     required this.createdAt,
+
   });
 
   Map<String, dynamic> toMap() {
@@ -45,6 +49,7 @@ class StudentModel {
       'status': status,
       'avatar_url': avatarUrl,
       'note': note,
+      'class_id': classId,
       'lichess_username': lichessUsername,
       'created_at': createdAt,
     };
@@ -64,11 +69,43 @@ class StudentModel {
       status: map['status'],
       avatarUrl: map['avatar_url'],
       note: map['note'],
+      classId: map['class_id'],
       lichessUsername: map['lichess_username'],
       createdAt: map['created_at'],
     );
   }
 
+factory StudentModel.fromFirestore(String id, Map<String, dynamic> fields) {
+  String str(String key) {
+    final value = fields[key];
+    if (value == null) return '';
+
+    return value['stringValue']?.toString() ??
+        value['integerValue']?.toString() ??
+        value['booleanValue']?.toString() ??
+        value['timestampValue']?.toString() ??
+        
+        '';
+  }
+
+  return StudentModel(
+    id: id,
+    fullName: str('fullName').isNotEmpty ? str('fullName') : str('studentName'),
+    dateOfBirth: str('dateOfBirth').isNotEmpty ? str('dateOfBirth') : null,
+    gender: str('gender').isNotEmpty ? str('gender') : null,
+    school: str('school').isNotEmpty ? str('school') : null,
+    grade: str('grade').isNotEmpty ? str('grade') : null,
+    address: str('address').isNotEmpty ? str('address') : null,
+    healthNote: str('healthNote').isNotEmpty ? str('healthNote') : null,
+    joinDate: str('joinDate').isNotEmpty ? str('joinDate') : null,
+    status: str('status').isNotEmpty ? str('status') : 'ACTIVE',
+    avatarUrl: str('avatarUrl').isNotEmpty ? str('avatarUrl') : null,
+    note: str('note').isNotEmpty ? str('note') : null,
+    classId: str('classId').isNotEmpty ? str('classId') : null,
+    lichessUsername: str('lichessUsername').isNotEmpty ? str('lichessUsername') : null,
+    createdAt: str('createdAt').isNotEmpty ? str('createdAt') : DateTime.now().toIso8601String(),
+  );
+}
   StudentModel copyWith({
     String? id,
     String? fullName,
@@ -82,6 +119,7 @@ class StudentModel {
     String? status,
     String? avatarUrl,
     String? note,
+    String? classId,
     String? lichessUsername,
     String? createdAt,
   }) {
@@ -98,6 +136,7 @@ class StudentModel {
       status: status ?? this.status,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       note: note ?? this.note,
+      classId: classId ?? this.classId,
       lichessUsername: lichessUsername ?? this.lichessUsername,
       createdAt: createdAt ?? this.createdAt,
     );

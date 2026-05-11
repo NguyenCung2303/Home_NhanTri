@@ -35,6 +35,12 @@ class _TeacherClassScreenState extends State<TeacherClassScreen> {
 
     if (_isTeacher && user != null) {
       await provider.loadClassRoomsForTeacher(user.id);
+
+      // Tạm fallback để giáo viên vẫn vào được luồng lớp/điểm danh
+      // khi dữ liệu phân công giáo viên chưa được migrate đầy đủ sang cloud.
+      if (provider.classRooms.isEmpty) {
+        await provider.loadClassRooms();
+      }
     } else {
       await provider.loadClassRooms();
     }

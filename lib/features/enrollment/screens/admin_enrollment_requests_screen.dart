@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../data/models/enrollment_request_model.dart';
-import '../../../data/repositories/enrollment_request_repository.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../theme/app_colors.dart';
+import '../repositories/enrollment_request_repository.dart';
+import '../../../data/repositories/class_room_repository.dart';
+import '../../../data/models/class_room_model.dart';
+
 
 class AdminEnrollmentRequestsScreen extends StatefulWidget {
   const AdminEnrollmentRequestsScreen({super.key});
@@ -15,6 +18,7 @@ class AdminEnrollmentRequestsScreen extends StatefulWidget {
 
 class _AdminEnrollmentRequestsScreenState extends State<AdminEnrollmentRequestsScreen> {
   final _repository = EnrollmentRequestRepository();
+  final _classRepository = ClassRoomRepository();
   late Future<List<EnrollmentRequestModel>> _future;
   String? _filterStatus;
 
@@ -59,45 +63,107 @@ class _AdminEnrollmentRequestsScreenState extends State<AdminEnrollmentRequestsS
   }
 
   Future<void> _approve(EnrollmentRequestModel item) async {
-    final adminId = context.read<AuthProvider>().currentUser?.id ?? 'admin';
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.card,
-        title: const Text('Duyệt đăng ký'),
-        content: Text(
-          'Duyệt đơn của ${item.parentName} và tạo tài khoản phụ huynh cho học sinh ${item.studentName}?\n\nMật khẩu mặc định: 123456',
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Duyệt')),
-        ],
+  final classes = await _classRepository.getAllClassRooms();
+
+  if (!mounted) return;
+
+  if (classes.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Chưa có lớp học nào để xếp học sinh'),
       ),
     );
-    if (confirmed != true) return;
-
-    try {
-      final result = await _repository.approveAndCreateAccount(requestId: item.id, approvedBy: adminId);
-      _reload();
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (_) => AlertDialog(
-          backgroundColor: AppColors.card,
-          title: const Text('Đã tạo tài khoản'),
-          content: Text(
-            'Tài khoản phụ huynh đã được tạo.\n\nSĐT đăng nhập: ${result.phone}\nMật khẩu mặc định: ${result.password}\n\nAdmin nên nhắc phụ huynh đổi mật khẩu sau khi đăng nhập.',
-            style: const TextStyle(color: AppColors.textSecondary),
-          ),
-          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))));
-    }
+    return;
   }
+
+  String selectedClassId = classes.first.id;
+
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (_) => StatefulBuilder(
+      builder: (context, setDialogState) {
+        return AlertDialog(
+          backgroundColor: AppColors.card,
+          title: const Text('Duyệt đăng ký'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Duyệt học sinh ${item.studentName}',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              DropdownButtonFormField<String>(
+                value: selectedClassId,
+                decoration: const InputDecoration(
+                  labelText: 'Chọn lớp học',
+                ),
+                items: classes.map((classRoom) {
+                  return DropdownMenuItem(
+                    value: classRoom.id,
+                    child: Text(
+                      '${classRoom.className} (${classRoom.classCode})',
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value == null) return;
+
+                  setDialogState(() {
+                    selectedClassId = value;
+                  });
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Duyệt'),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+
+  if (confirmed != true) return;
+
+  try {
+    await _repository.approveAndCreateAccount(
+      requestId: item.id,
+      classId: selectedClassId,
+    );
+
+    _reload();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Đã duyệt và xếp lớp học sinh'),
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          e.toString().replaceFirst('Exception: ', ''),
+        ),
+      ),
+    );
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -117,11 +183,56 @@ class _AdminEnrollmentRequestsScreenState extends State<AdminEnrollmentRequestsS
               padding: const EdgeInsets.symmetric(horizontal: 16),
               scrollDirection: Axis.horizontal,
               children: [
-                _FilterChip(label: 'Tất cả', active: _filterStatus == null, onTap: () => setState(() { _filterStatus = null; _reload(); })),
-                _FilterChip(label: 'Chờ xử lý', active: _filterStatus == 'PENDING', onTap: () => setState(() { _filterStatus = 'PENDING'; _reload(); })),
-                _FilterChip(label: 'Đã liên hệ', active: _filterStatus == 'CONTACTED', onTap: () => setState(() { _filterStatus = 'CONTACTED'; _reload(); })),
-                _FilterChip(label: 'Đã duyệt', active: _filterStatus == 'APPROVED', onTap: () => setState(() { _filterStatus = 'APPROVED'; _reload(); })),
-                _FilterChip(label: 'Từ chối', active: _filterStatus == 'REJECTED', onTap: () => setState(() { _filterStatus = 'REJECTED'; _reload(); })),
+                _FilterChip(
+                  label: 'Tất cả',
+                  active: _filterStatus == null,
+                  onTap: () {
+                    setState(() {
+                      _filterStatus = null;
+                    });
+                    _reload();
+                  },
+                ),
+                _FilterChip(
+                  label: 'Chờ xử lý',
+                  active: _filterStatus == 'PENDING',
+                  onTap: () {
+                    setState(() {
+                      _filterStatus = 'PENDING';
+                    });
+                    _reload();
+                  },
+                ),
+                _FilterChip(
+                  label: 'Đã liên hệ',
+                  active: _filterStatus == 'CONTACTED',
+                  onTap: () {
+                    setState(() {
+                      _filterStatus = 'CONTACTED';
+                    });
+                    _reload();
+                  },
+                ),
+                _FilterChip(
+                  label: 'Đã duyệt',
+                  active: _filterStatus == 'APPROVED',
+                  onTap: () {
+                    setState(() {
+                      _filterStatus = 'APPROVED';
+                    });
+                    _reload();
+                  },
+                ),
+                _FilterChip(
+                  label: 'Từ chối',
+                  active: _filterStatus == 'REJECTED',
+                  onTap: () {
+                    setState(() {
+                      _filterStatus = 'REJECTED';
+                    });
+                    _reload();
+                  },
+                ),
               ],
             ),
           ),

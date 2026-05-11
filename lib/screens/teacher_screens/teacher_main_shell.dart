@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../theme/app_colors.dart';
 import 'teacher_class_screen.dart';
-import 'teacher_attendance_tag_screen.dart';
 import 'teacher_learning_guidance_screen.dart';
+import 'teacher_tuition_screen.dart';
 import 'teacher_profile_screen.dart';
 
 class TeacherMainShell extends StatefulWidget {
@@ -18,8 +18,9 @@ class _TeacherMainShellState extends State<TeacherMainShell> {
 
   final List<Widget> _screens = const [
     TeacherClassScreen(),
-    TeacherAttendanceTagScreen(),
+    TeacherClassScreen(attendanceMode: true),
     TeacherLearningGuidanceScreen(),
+    TeacherTuitionScreen(),
     TeacherProfileScreen(),
   ];
 
@@ -67,10 +68,11 @@ class _TeacherBottomBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _NavItem(icon: Icons.class_, label: 'Lớp phụ trách', active: currentIndex == 0, onTap: () => onChanged(0)),
+          _NavItem(icon: Icons.class_, label: 'Lớp', active: currentIndex == 0, onTap: () => onChanged(0)),
           _NavItem(icon: Icons.fact_check, label: 'Điểm danh', active: currentIndex == 1, onTap: () => onChanged(1)),
           _NavItem(icon: Icons.school, label: 'Định hướng', active: currentIndex == 2, onTap: () => onChanged(2)),
-          _NavItem(icon: Icons.person, label: 'Cá nhân', active: currentIndex == 3, onTap: () => onChanged(3)),
+          _NavItem(icon: Icons.payments, label: 'Học phí', active: currentIndex == 3, onTap: () => onChanged(3)),
+          _NavItem(icon: Icons.person, label: 'Cá nhân', active: currentIndex == 4, onTap: () => onChanged(4)),
         ],
       ),
     );
@@ -98,7 +100,7 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 72,
+        width: 62,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

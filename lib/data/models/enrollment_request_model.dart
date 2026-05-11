@@ -17,6 +17,12 @@ class EnrollmentRequestModel {
   final String? parentId;
   final String? studentId;
   final String? rejectionReason;
+  final String? gender;
+  final String? school;
+  final String? grade;
+  final String? lichessUsername;
+  final String? address;
+  final String? healthNote;
 
   const EnrollmentRequestModel({
     required this.id,
@@ -37,6 +43,12 @@ class EnrollmentRequestModel {
     this.parentId,
     this.studentId,
     this.rejectionReason,
+    this.gender,
+    this.school,
+    this.grade,
+    this.lichessUsername,
+    this.address,
+    this.healthNote,
   });
 
   bool get isPending => status == 'PENDING';
@@ -79,6 +91,12 @@ class EnrollmentRequestModel {
       'parent_id': parentId,
       'student_id': studentId,
       'rejection_reason': rejectionReason,
+      'gender': gender,
+      'school': school,
+      'grade': grade,
+      'lichess_username': lichessUsername,
+      'address': address,
+      'health_note': healthNote,
     };
   }
 
@@ -102,6 +120,12 @@ class EnrollmentRequestModel {
       parentId: map['parent_id']?.toString(),
       studentId: map['student_id']?.toString(),
       rejectionReason: map['rejection_reason']?.toString(),
+      gender: map['gender']?.toString(),
+      school: map['school']?.toString(),
+      grade: map['grade']?.toString(),
+      lichessUsername: map['lichess_username']?.toString(),
+      address: map['address']?.toString(),
+      healthNote: map['health_note']?.toString(),
     );
   }
 }

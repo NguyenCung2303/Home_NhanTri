@@ -4,7 +4,6 @@ import '../../theme/app_colors.dart';
 import '../teacher_screens/teacher_home_screen.dart';
 import '../teacher_screens/teacher_class_screen.dart';
 import '../teacher_screens/teacher_schedule_screen.dart';
-import '../teacher_screens/teacher_message_screen.dart';
 import '../teacher_screens/teacher_profile_screen.dart';
 import '../todo/todo_home_screen.dart';
 import '../../features/enrollment/screens/admin_enrollment_requests_screen.dart';
@@ -22,8 +21,8 @@ class _AdminMainShellState extends State<AdminMainShell> {
   final List<Widget> _screens = const [
     TeacherHomeScreen(),
     TeacherClassScreen(),
+    TeacherClassScreen(attendanceMode: true),
     TeacherScheduleScreen(),
-    TeacherMessageScreen(),
     AdminEnrollmentRequestsScreen(),
     TodoHomeScreen(),
     TeacherProfileScreen(),
@@ -75,8 +74,8 @@ class _AdminBottomBar extends StatelessWidget {
         children: [
           _NavItem(icon: Icons.dashboard, label: 'Tổng quan', active: currentIndex == 0, onTap: () => onChanged(0)),
           _NavItem(icon: Icons.class_, label: 'Lớp học', active: currentIndex == 1, onTap: () => onChanged(1)),
-          _NavItem(icon: Icons.schedule, label: 'Lịch học', active: currentIndex == 2, onTap: () => onChanged(2)),
-          _NavItem(icon: Icons.chat, label: 'Tin nhắn', active: currentIndex == 3, onTap: () => onChanged(3)),
+          _NavItem(icon: Icons.fact_check, label: 'Điểm danh', active: currentIndex == 2, onTap: () => onChanged(2)),
+          _NavItem(icon: Icons.schedule, label: 'Lịch học', active: currentIndex == 3, onTap: () => onChanged(3)),
           _NavItem(icon: Icons.assignment_ind, label: 'Đăng ký', active: currentIndex == 4, onTap: () => onChanged(4)),
           _NavItem(icon: Icons.checklist, label: 'To-Do', active: currentIndex == 5, onTap: () => onChanged(5)),
           _NavItem(icon: Icons.person, label: 'Cá nhân', active: currentIndex == 6, onTap: () => onChanged(6)),
