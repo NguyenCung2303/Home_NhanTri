@@ -35,7 +35,7 @@ class TeacherHomeScreen extends StatelessWidget {
           children: [
             _TeacherCard(
               title: 'Danh sách lớp',
-              icon: Icons.class_,
+              icon: Icons.groups_rounded,
               onTap: () {
                 Navigator.push(
                   context,
@@ -47,7 +47,7 @@ class TeacherHomeScreen extends StatelessWidget {
             ),
             _TeacherCard(
               title: 'Điểm danh',
-              icon: Icons.fact_check,
+              icon: Icons.event_available_rounded,
               onTap: () {
                 Navigator.push(
                   context,
@@ -59,7 +59,7 @@ class TeacherHomeScreen extends StatelessWidget {
             ),
             _TeacherCard(
               title: 'Học sinh',
-              icon: Icons.group,
+              icon: Icons.diversity_3_rounded,
               onTap: () {
                 Navigator.push(
                   context,
@@ -71,7 +71,7 @@ class TeacherHomeScreen extends StatelessWidget {
             ),
             _TeacherCard(
               title: 'Học phí',
-              icon: Icons.payments,
+              icon: Icons.payments_rounded,
               onTap: () {
                 Navigator.push(
                   context,
@@ -84,7 +84,7 @@ class TeacherHomeScreen extends StatelessWidget {
             if (context.watch<AuthProvider>().currentUser?.role == 'ADMIN')
               _TeacherCard(
                 title: 'Phụ huynh',
-                icon: Icons.family_restroom,
+                icon: Icons.family_restroom_rounded,
                 onTap: () {
                   Navigator.push(
                     context,
@@ -94,19 +94,21 @@ class TeacherHomeScreen extends StatelessWidget {
                   );
                 },
               ),
-            _TeacherCard(
-              title: 'Nhân viên',
-              icon: Icons.badge,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const TeacherStaffScreen(),
-                  ),
-                );
-              },
-            ),
+            if (context.watch<AuthProvider>().currentUser?.role == 'ADMIN')
+              _TeacherCard(
+                title: 'Nhân viên',
+                icon: Icons.badge_rounded,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const TeacherStaffScreen(),
+                    ),
+                  );
+                },
+              ),
           ],
+          
         ),
       ),
     );
@@ -128,14 +130,9 @@ class _TeacherCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(22),
       child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border),
-          boxShadow: AppColors.softShadow,
-        ),
+        decoration: AppColors.cardDecoration(radius: 22),
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

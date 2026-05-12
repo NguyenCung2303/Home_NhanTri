@@ -2,15 +2,14 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../config/api_config.dart';
 import '../models/stockfish_analysis_model.dart';
 
 class StockfishAnalysisService {
-  /// Android Emulator: http://10.0.2.2:8000
-  /// iOS Simulator / Desktop / Web local: http://localhost:8000
-  /// Điện thoại thật: đổi thành IP LAN của máy chạy backend, ví dụ http://192.168.1.5:8000
   final String baseUrl;
 
-  StockfishAnalysisService({this.baseUrl = 'http://localhost:8000'});
+  StockfishAnalysisService({String? baseUrl})
+      : baseUrl = (baseUrl ?? ApiConfig.stockfishBaseUrl).trim();
 
   String _normalizeUsername(String input) {
     var value = input.trim();
@@ -28,8 +27,15 @@ class StockfishAnalysisService {
     int depth = 8,
   }) async {
     final cleanUsername = _normalizeUsername(username);
+
     if (cleanUsername.isEmpty) {
       throw Exception('Chưa có username Lichess để phân tích Stockfish');
+    }
+
+    if (baseUrl.isEmpty) {
+      throw Exception(
+        'Chưa cấu hình Stockfish API. Khi build app thật, chạy với --dart-define=STOCKFISH_BASE_URL=https://api-cua-ban.com',
+      );
     }
 
     final uri = Uri.parse('$baseUrl/analyze/$cleanUsername').replace(
@@ -39,22 +45,30 @@ class StockfishAnalysisService {
       },
     );
 
-    final response = await http.get(uri, headers: const {'Accept': 'application/json'}).timeout(
+    final response = await http
+        .get(
+          uri,
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(
           const Duration(seconds: 90),
         );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       String message = 'Backend Stockfish trả lỗi ${response.statusCode}';
+
       try {
         final decoded = jsonDecode(response.body);
         if (decoded is Map && decoded['detail'] != null) {
           message = decoded['detail'].toString();
         }
       } catch (_) {}
+
       throw Exception(message);
     }
 
     final decoded = jsonDecode(response.body);
+
     if (decoded is! Map<String, dynamic>) {
       throw Exception('Dữ liệu Stockfish backend không đúng định dạng');
     }
