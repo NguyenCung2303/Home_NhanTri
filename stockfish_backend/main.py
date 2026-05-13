@@ -9,6 +9,8 @@ import chess.engine
 import requests
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
 
 app = FastAPI(title="Home NhanTri Stockfish Analyzer", version="1.0.0")
 
@@ -40,6 +42,89 @@ def stockfish_path() -> Optional[str]:
         return configured
     found = shutil.which("stockfish")
     return found
+
+
+class BestMoveRequest(BaseModel):
+    fen: str
+    depth: int = 12
+
+
+class CheckMoveRequest(BaseModel):
+    fen: str
+    player_move: str
+    depth: int = 12
+
+
+def _open_engine() -> chess.engine.SimpleEngine:
+    path = stockfish_path()
+    if not path:
+        raise HTTPException(
+            status_code=500,
+            detail="Không tìm thấy Stockfish trên server. Kiểm tra Dockerfile hoặc biến STOCKFISH_PATH."
+        )
+    try:
+        return chess.engine.SimpleEngine.popen_uci(path)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Không mở được Stockfish: {exc}")
+
+
+@app.post("/best-move")
+def best_move(req: BestMoveRequest) -> Dict[str, Any]:
+    try:
+        board = chess.Board(req.fen)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="FEN không hợp lệ")
+
+    if board.is_game_over():
+        return {
+            "best_move": None,
+            "game_over": True,
+            "fen": req.fen,
+        }
+
+    with _open_engine() as engine:
+        result = engine.play(board, chess.engine.Limit(depth=req.depth))
+
+    return {
+        "best_move": result.move.uci() if result.move else None,
+        "fen": req.fen,
+        "depth": req.depth,
+    }
+
+
+@app.post("/check-move")
+def check_move(req: CheckMoveRequest) -> Dict[str, Any]:
+    try:
+        board = chess.Board(req.fen)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="FEN không hợp lệ")
+
+    try:
+        player_move = chess.Move.from_uci(req.player_move)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="player_move phải ở dạng UCI, ví dụ e2e4 hoặc e7e8q")
+
+    if player_move not in board.legal_moves:
+        return {
+            "correct": False,
+            "legal": False,
+            "player_move": req.player_move,
+            "best_move": None,
+            "reason": "Nước đi không hợp lệ trong thế cờ hiện tại",
+        }
+
+    with _open_engine() as engine:
+        result = engine.play(board, chess.engine.Limit(depth=req.depth))
+
+    best = result.move.uci() if result.move else None
+
+    return {
+        "correct": req.player_move == best,
+        "legal": True,
+        "player_move": req.player_move,
+        "best_move": best,
+        "depth": req.depth,
+    }
 
 
 def fetch_lichess_games(username: str, max_games: int) -> List[Dict[str, Any]]:
